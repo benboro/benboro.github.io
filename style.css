@@ -347,6 +347,7 @@ hr {
 .side p {
   font-size: 16pt;
   margin-bottom: 1em;
+  text-align: center;
 }
 
 .pers-container {
@@ -365,6 +366,7 @@ hr {
   border-radius: 5px;
   padding: 5px 0;
   border: solid 1px black;
+  text-align: center;
 }
 
 .pers-btn:hover {
@@ -682,6 +684,7 @@ a.grid-box {
   border-radius: 0%;
 }
 
+/*
 #tooltip:hover:after {
   background: #333;
   border-radius: 5px;
@@ -703,7 +706,7 @@ a.grid-box {
   left: 50%;
   position: absolute;
 }
-
+*/
 .footer { 
   background: #000;
   padding: 10px 0;
