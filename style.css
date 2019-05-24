@@ -383,13 +383,13 @@ hr {
 
 .passion {
   margin: 1em 0;
-  text-align: left;
 }
 
 .passion p {
   font-size: 16pt;
   font-weight: bold;
   margin-bottom: .5rem;
+  text-align: left;
 }
 
 .tags {
@@ -467,6 +467,7 @@ hr {
 
 .rotate {
   padding: 5px 10px;
+  margin-top: 1em;
   margin-bottom: 1em;
   text-align: center;
   font-family: 'Courier New', Courier, monospace;
@@ -712,6 +713,14 @@ a.grid-box {
   padding: 10px 0;
 }
 
+.footer .text {
+  display: flex;
+}
+
+#copyright {
+  flex: 1;
+}
+
 .footer p { 
   color: #fff;
   font-size: 12pt;
@@ -721,4 +730,18 @@ a.grid-box {
   max-width: 50px;
   padding-right: 1rem;
   vertical-align: -1rem;
+}
+
+#willie {
+  flex: 1;
+  margin: auto;
+  margin-top: 1rem;
+  color: #c4c4c4;
+  text-align: right;
+}
+
+#willie a {
+  text-decoration: none;
+  font-weight: bold;
+  color: #7c198c;
 }
