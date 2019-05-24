@@ -4,6 +4,26 @@ html, body {
   height: 100%;
 }
 
+@font-face {
+  font-family: 'Atlas Grotesk Light';
+  src: url(assets/styles/AtlasGrotesk-Light.otf);
+}
+
+@font-face {
+  font-family: 'LM Roman Reg';
+  src: url(assets/styles/lmroman12-regular.otf);
+}
+
+@font-face {
+  font-family: 'LM Roman It';
+  src: url(assets/styles/lmroman12-italic.otf);
+}
+
+@font-face {
+  font-family: 'DecimaMono';
+  src: url(assets/styles/DecimaMonoBen.otf);
+}
+
 body {
   font-family: 'Atlas Grotesk Light', Arial, 'Roboto', sans-serif;
   font-weight: 200;
@@ -456,13 +476,8 @@ hr {
 }
 
 .bio em {
-  font-family: 'Latin Modern Roman 12','Times New Roman', Times, serif;
+  font-family: 'LM Roman It','Times New Roman', Times, serif;
   font-size: 16pt;
-}
-
-@font-face {
-  font-family: 'DecimaMono';
-  src: url(styles/DecimaMonoBen.otf);
 }
 
 .rotate {
