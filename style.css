@@ -151,6 +151,12 @@ p {
   padding: 0 2.5%;
 }
 
+@media screen and (max-width: 600px) {
+  .container .text {
+    margin: 0;
+  }
+}
+
 .nav { 
   background: #000;
   width: 100%;
@@ -985,6 +991,16 @@ a.grid-box#blog {
 .jumbotron p {
   color: #fff; 
   text-align: right; 
+}
+
+@media screen and (max-width: 600px) {
+  .jumbotron h2 {
+    font-size: 18pt;
+  }
+
+  .jumbotron p {
+    font-size: 12pt;
+  }
 }
 
 .connect {
