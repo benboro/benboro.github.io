@@ -651,6 +651,10 @@ iframe#graph {
   .grid-box {
     filter: none;
   }
+
+  .grid-box-top img {
+    width: initial;
+  }
 }
 
 /* .grid-box-top img#portrait {
