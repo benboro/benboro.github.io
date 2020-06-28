@@ -452,6 +452,7 @@ hr {
   padding: 5px 0;
   border: solid 1px black;
   text-align: center;
+  max-height: 35px;
 }
 
 .pers-btn:hover {
