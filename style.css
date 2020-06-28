@@ -639,6 +639,7 @@ iframe#graph {
   margin: auto;
   max-width: 250px;
   max-height: 125px;
+  padding: 10px;
 /*   max-width: 90%;
   max-height: 90%; */
 }
@@ -647,12 +648,14 @@ iframe#graph {
   filter: none;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .grid-box {
     filter: none;
   }
 
   .grid-box-top img {
+    max-width: 200px;
+    max-height: 100px;
     width: initial;
   }
 }
