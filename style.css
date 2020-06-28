@@ -565,19 +565,19 @@ hr {
   text-align: left;
 }
 
-.bio em {
+/* .bio em {
   font-family: 'LM Roman It','Times New Roman', Times, serif;
   font-size: 16pt;
-}
+} */
 
 @media screen and (max-width: 600px) {
   .bio {
     font-size: 10pt;
   }
 
-  .bio em {
+/*   .bio em {
     font-size: 12pt;
-  }
+  } */
 }
 
 .rotate {
