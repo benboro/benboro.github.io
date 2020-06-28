@@ -186,6 +186,7 @@ pc: 960+
     min-width: 100%;
     text-align: left;
     margin-right: 0;
+    font-size: 12pt;
   }
 
   .container .text {
@@ -209,6 +210,12 @@ table {
   border-bottom: 2pt solid black;
   font-size: 14pt;
   margin: 0 auto 5em auto;
+}
+
+@media screen and (max-width: 600px) {
+  table {
+    font-size: 10pt;
+  }
 }
 
 tr.border-bottom th {
@@ -279,6 +286,12 @@ th.rght, td.rght {
 
 .lines.r {
   margin: 1rem 5em 0 1em;
+}
+
+@media screen and (max-width: 600px) {
+  .sec h2 {
+    font-size: 18pt;
+  }
 }
 
 @media screen and (max-width: 800px) {
@@ -547,6 +560,16 @@ hr {
   font-size: 16pt;
 }
 
+@media screen and (max-width: 600px) {
+  .bio {
+    font-size: 10pt;
+  }
+
+  .bio em {
+    font-size: 12pt;
+  }
+}
+
 .rotate {
   padding: 5px 10px;
   margin-top: 1em;
@@ -588,6 +611,12 @@ iframe#graph {
 .education p {
   text-align: center;
   font-size: 14pt;
+}
+
+@media screen and (max-width: 600px) {
+  .education p {
+    font-size: 10pt;
+  }
 }
 
 .grid {
@@ -774,6 +803,12 @@ iframe#graph {
   font-size: 14pt;
 }
 
+@media screen and (max-width: 600px) {
+  .grid-box-bottom p {
+    font-size: 12pt;
+  }
+}
+
 a.grid-box#blog {
   color: #fff;
 }
@@ -843,6 +878,16 @@ a.grid-box#blog {
   padding-top: 1em;
 }
 
+@media screen and (max-width: 600px) {
+  .projects-item .title {
+    font-size: 12pt;
+  }
+
+  .projects-item .date {
+    font-size: 10pt;
+  }
+}
+
 .blog-item {
   height: 1.5em;
   display: flex;
@@ -858,6 +903,12 @@ a.grid-box#blog {
   color: #3c3b3b;
 }
 
+@media screen and (max-width: 600px) {
+  .blog-item {
+    font-size: 10pt;
+  }
+}
+
 .blog-item .title {
   flex: 1;
 }
@@ -865,6 +916,7 @@ a.grid-box#blog {
 .blog-item .info {
   flex: 0 1 auto;
   padding: 0 1rem;
+  text-align: center;
 }
 
 .blog-item .date {
