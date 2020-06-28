@@ -122,7 +122,11 @@ p {
     font-size: 56pt;
   }
  
-  .main, .jumbotron {
+  /* .main, .jumbotron {
+    padding: 0 30px;
+  } */
+  
+  .jumbotron {
     padding: 0 30px;
   }
  
@@ -885,6 +889,10 @@ a.grid-box#blog {
 }
 
 @media screen and (max-width: 600px) {
+  .projects-item {
+    height: 150px;
+  }
+
   .projects-item .title {
     font-size: 12pt;
   }
