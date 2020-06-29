@@ -103,6 +103,5 @@ $(function() {
                 $(this).addClass('section-active');
             });
         });
-        $("#PageRefresh").load(" #PageRefresh > *");
     }
 })();
