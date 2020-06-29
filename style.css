@@ -788,6 +788,25 @@ iframe#graph {
   padding-bottom: 0.5em;
 }
 
+@media screen and (max-width: 600px) {
+  .modal-header {
+    font-size: 14pt;
+  }
+
+  .modal-body .date, .modal-body .details {
+    font-size: 10pt;
+  }
+
+  .modal-body .position {
+    font-size: 12pt;
+  }
+
+  .modal-image img {
+    max-width: 200px;
+    max-height: 125px;
+  }
+}
+
 #overlay {
   position: fixed;
   opacity: 0;
