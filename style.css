@@ -804,6 +804,7 @@ iframe#graph {
   .modal-image img {
     max-width: 200px;
     max-height: 125px;
+    width: initial;
   }
 }
 
