@@ -883,10 +883,13 @@ a.grid-box#blog {
 .projects-item img {
   height: 100%;
   width: auto;
+  object-fit: contain;
 }
 
 .projects-item img#cover {
   border: solid 1px black;
+  background-color: #fff;
+  width: 200px;
 }
 
 .projects-item .description {
