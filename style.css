@@ -665,6 +665,12 @@ iframe#graph {
   margin: auto;
 }
 
+.grid-box:hover {
+  background-color: #eee;
+  transition: .3s;
+  transform: scale(1.1);
+}
+
 .grid-box-top {
   flex: 3;
   display: flex;
@@ -681,6 +687,7 @@ iframe#graph {
   padding: 10px;
 /*   max-width: 90%;
   max-height: 90%; */
+  transform: scale(0.8);
 }
 
 .grid-box:hover {
@@ -973,7 +980,7 @@ a.grid-box#blog {
   background-image: none;
 }
 
-.grid-box-blog {
+/* .grid-box-blog {
   margin: auto;
   opacity: 0;
   padding: 0.5em 1em;
@@ -984,7 +991,7 @@ a.grid-box#blog {
 
 #blog:hover .grid-box-blog {
   opacity: 1;
-}
+} */
 
 
 .jumbotron {
