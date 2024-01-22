@@ -415,6 +415,7 @@ hr {
   float: left;
   width: 25%;
   min-width: 182px; /* prevents tag wrapping */
+  margin-bottom: 1em;
 }
 
 @media screen and (max-width: 600px) {
@@ -459,23 +460,26 @@ hr {
 
 .pers-container {
   width: 100%;
-  margin: 2em auto;
+  margin: 0em auto;
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
 }
 
 .pers-btn {
   display: flex;
-  flex-basis: 30%;
+  /* flex-basis: 30%; */
   justify-content: center;
   cursor: pointer;
   background-color: white;
   border-radius: 5px;
   padding: 5px 0;
   border: solid 1px black;
-  text-align: center;
-  max-height: 35px;
+  /* text-align: center;
+  max-height: 35px; */
+  width: 50%;
+  margin: auto;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: inherit;
 }
 
 .pers-btn:hover {
@@ -485,16 +489,25 @@ hr {
 
 .pers-btn img {
   margin: auto;
-  width: 25px;
+  max-width: inherit;
+  max-height: 250px;
+  width: 90%;
+  height: 90%;
   border: none;
   vertical-align: middle;
+}
+
+.pers-btn span {
+  padding-top: 0.5em;
+  margin: auto;
+  font-size: 14pt;
 }
 
 .passion {
   margin: 1em 0;
 }
 
-.passion p {
+.bio .passion p {
   font-size: 16pt;
   font-weight: bold;
   margin-bottom: .5rem;
