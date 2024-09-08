@@ -10,6 +10,7 @@ $('.section-tab').click(function () {
     $('.section-active').slideUp(function () {
         $(this).removeClass('section-active');
         $('.' + classToShow).slideDown(function () {
+            // $(this).css('display', 'flex').addClass('section-active');
             $(this).addClass('section-active');
         });
     });
