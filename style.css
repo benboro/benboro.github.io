@@ -338,7 +338,7 @@ div.chart{
 }
 
 .section-active {
-  display: block;
+  display: flex;
 }
 
 .section,.section-active {
@@ -353,7 +353,6 @@ h2 {
 
 .personal.section.section-active,.personal.section h2 {
   text-align: center;
-  min-height: 50vh;
 }
 
 hr {
