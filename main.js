@@ -38,14 +38,6 @@ $(".click-down-link").click(function(event) {
     } // End if
 });
 
-// copy to clipboard
-function copyToClipboard() {
-    var copyText = document.getElementById("copy-this");
-    copyText.select();
-    document.execCommand("copy");
-    alert("Copied the text: " + copyText.value);
-};
-
 // modals
 const openModalButtons = document.querySelectorAll('[data-modal-target]')
 const closeModalButtons = document.querySelectorAll('[data-close-target]')
