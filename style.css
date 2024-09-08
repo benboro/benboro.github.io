@@ -353,6 +353,7 @@ h2 {
 
 .personal.section.section-active,.personal.section h2 {
   text-align: center;
+  min-height: 50vh;
 }
 
 hr {
@@ -576,6 +577,11 @@ hr {
 .bio p {
   margin-bottom: 1.2em;
   text-align: left;
+}
+
+div#readmore {
+  display: flex;
+  justify-content: center;
 }
 
 /* .bio em {
