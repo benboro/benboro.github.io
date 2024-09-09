@@ -246,6 +246,7 @@ th.rght, td.rght {
 
 .main .container {
   margin: 50px 10%;
+  /* display: flex; */
 }
 
 .fancy {
@@ -338,7 +339,8 @@ div.chart{
 }
 
 .section-active {
-  display: flex;
+  display: block;
+
 }
 
 .section,.section-active {
@@ -407,6 +409,7 @@ hr {
 
 .content {
   width: 100%;
+  display: inline-block;
 }
 
 .side {
