@@ -586,14 +586,14 @@ div#readmore {
   justify-content: center;
 }
 
-button#mybuttonid {
+#mybuttonid {
   padding: 10px;
   font-size: 16px;
   font-weight: 700;
   border: none;
   border-radius: 30px;
   background-color: rgb(182, 215, 182);
-  margin-top: 20px;
+  margin-top: 1em;
 }
 
 /* .bio em {
