@@ -590,10 +590,15 @@ div#readmore {
   padding: 10px;
   font-size: 16px;
   font-weight: 700;
-  border: none;
+  border: solid 2px #000;
   border-radius: 30px;
-  background-color: rgb(182, 215, 182);
+  background-color: #fff;
   margin-top: 1em;
+}
+
+#mybuttonid:hover {
+  background-color: #eee;
+  transition: background .2s;
 }
 
 /* .bio em {
