@@ -1106,6 +1106,12 @@ a.grid-box#blog {
   background-position: right;
 }
 
+#github {
+  background-image: url(assets/svg/github_def.svg);
+  background-repeat: no-repeat;
+  background-position: right;
+}
+
 #gmail {
   background-image: url(assets/svg/gmail_enabled.svg);
   background-repeat: no-repeat;
