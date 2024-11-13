@@ -1079,7 +1079,7 @@ a.grid-box#blog {
   padding-left: 1em;
   background-repeat: no-repeat;
 }
-
+/* 
 .btn img {
   transition: .5s;
 }
@@ -1124,7 +1124,7 @@ a.grid-box#blog {
   position: absolute;
   border-radius: 0%;
 }
-
+ */
 /* #tooltip:hover:after {
   background: #333;
   border-radius: 5px;
