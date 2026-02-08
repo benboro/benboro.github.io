@@ -2,10 +2,9 @@
     "use strict";
 
     // =========================================================================
-    // Embedded data from CSV files
+    // Auto-generated from JSON data. Do not edit manually.
     // =========================================================================
 
-    // From data/ssb_word_length.csv (cp1252 curly apostrophes -> Unicode)
     var SSB_DATA = [
         {word: "O", noteLength: 0.1875},
         {word: "say", noteLength: 0.25},
@@ -89,7 +88,7 @@
         {word: "brave", noteLength: 0.5}
     ];
 
-    // From data/bref_word_length.csv
+    // From data/bref_word_length.json
     var BREF_DATA = [
         {word: "Jos\u00e9 Canseco", noteLength: 1.4375},
         {word: "Byers", noteLength: 0.1875},
