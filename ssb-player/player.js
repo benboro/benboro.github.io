@@ -5,6 +5,8 @@
     // Auto-generated from JSON data. Do not edit manually.
     // =========================================================================
 
+    // Auto-generated from JSON data. Do not edit manually.
+
     var SSB_DATA = [
         {word: "O", noteLength: 0.1875},
         {word: "say", noteLength: 0.25},
@@ -88,7 +90,6 @@
         {word: "brave", noteLength: 0.5}
     ];
 
-    // From data/bref_word_length.json
     var BREF_DATA = [
         {word: "Jos\u00e9 Canseco", noteLength: 1.4375},
         {word: "Byers", noteLength: 0.1875},
@@ -154,8 +155,74 @@
         {word: "Graves", noteLength: 0.5}
     ];
 
-    // Word counts per line from first stanza of star_spangled_banner.txt
     var LINE_WORD_COUNTS = [10, 10, 10, 9, 10, 11, 8, 12];
+
+    var BREF_LINKS = [
+    "https://www.baseball-reference.com/players/c/cansejo01.shtml",
+    "https://www.baseball-reference.com/players/b/byersra01.shtml",
+    "https://www.baseball-reference.com/players/d/dawsoan01.shtml",
+    "https://www.baseball-reference.com/players/l/leede02.shtml",
+    "https://www.baseball-reference.com/players/l/lightpa01.shtml",
+    "https://www.baseball-reference.com/players/w/watsoto01.shtml",
+    "https://www.baseball-reference.com/players/p/prougbi01.shtml",
+    "https://www.baseball-reference.com/players/d/dellwh01.shtml",
+    "https://www.baseball-reference.com/players/l/leecl02.shtml",
+    "https://www.baseball-reference.com/players/h/haleda02.shtml",
+    "https://www.baseball-reference.com/managers/actama99.shtml",
+    "https://www.baseball-reference.com/players/t/twinitw01.shtml",
+    "https://www.baseball-reference.com/players/l/laslebi01.shtml",
+    "https://www.baseball-reference.com/players/m/mintzst01.shtml",
+    "https://www.baseball-reference.com/players/h/huch01.shtml",
+    "https://www.baseball-reference.com/players/b/bairdbo01.shtml",
+    "https://www.baseball-reference.com/players/s/strikjo01.shtml",
+    "https://www.baseball-reference.com/players/c/cantzba01.shtml",
+    "https://www.baseball-reference.com/players/b/brighha01.shtml",
+    "https://www.baseball-reference.com/players/s/starrdi01.shtml",
+    "https://www.baseball-reference.com/players/t/throoge01.shtml",
+    "https://www.baseball-reference.com/players/p/powelpa01.shtml",
+    "https://www.baseball-reference.com/players/l/lisjo01.shtml",
+    "https://www.baseball-reference.com/players/f/flythst01.shtml",
+    "https://www.baseball-reference.com/players/o/odorro01.shtml",
+    "https://www.baseball-reference.com/players/r/randdi01.shtml",
+    "https://www.baseball-reference.com/players/p/partccu01.shtml",
+    "https://www.baseball-reference.com/players/w/weeksri01.shtml",
+    "https://www.baseball-reference.com/players/k/kochbi01.shtml",
+    "https://www.baseball-reference.com/players/w/wordsfa01.shtml",
+    "https://www.baseball-reference.com/players/g/galleza01.shtml",
+    "https://www.baseball-reference.com/players/l/leebr01.shtml",
+    "https://www.baseball-reference.com/players/s/streehu01.shtml",
+    "https://www.baseball-reference.com/players/m/mannbr01.shtml",
+    "https://www.baseball-reference.com/players/a/annade01.shtml",
+    "https://www.baseball-reference.com/players/r/rockepa01.shtml",
+    "https://www.baseball-reference.com/players/r/rettgge01.shtml",
+    "https://www.baseball-reference.com/players/d/dahlda01.shtml",
+    "https://www.baseball-reference.com/players/b/bondsba01.shtml",
+    "https://www.baseball-reference.com/players/b/bruskji01.shtml",
+    "https://www.baseball-reference.com/players/k/kingcu01.shtml",
+    "https://www.baseball-reference.com/players/i/ingebr01.shtml",
+    "https://www.baseball-reference.com/players/e/eyrewi01.shtml",
+    "https://www.baseball-reference.com/players/r/ruthba01.shtml",
+    "https://www.baseball-reference.com/players/t/toolest01.shtml",
+    "https://www.baseball-reference.com/managers/knighlo01.shtml",
+    "https://www.baseball-reference.com/players/t/thatcjo01.shtml",
+    "https://www.baseball-reference.com/players/f/flagewa01.shtml",
+    "https://www.baseball-reference.com/players/s/stillku01.shtml",
+    "https://www.baseball-reference.com/players/d/delatjo01.shtml",
+    "https://www.baseball-reference.com/players/s/spangal01.shtml",
+    "https://www.baseball-reference.com/players/b/bannoji01.shtml",
+    "https://www.baseball-reference.com/players/y/yettri01.shtml",
+    "https://www.baseball-reference.com/players/c/caveja01.shtml",
+    "https://www.baseball-reference.com/players/o/orrpe01.shtml",
+    "https://www.baseball-reference.com/players/d/dullry01.shtml",
+    "https://www.baseball-reference.com/players/l/landdo01.shtml",
+    "https://www.baseball-reference.com/players/d/deverra01.shtml",
+    "https://www.baseball-reference.com/players/f/freesda01.shtml",
+    "https://www.baseball-reference.com/players/m/mahompa01.shtml",
+    "https://www.baseball-reference.com/players/s/sanomi01.shtml",
+    "https://www.baseball-reference.com/players/g/graveda01.shtml"
+];
+
+    var BREF_LINE_BREAK_WORDS = ["Light", "Mintz", "Flythe", "Mann", "Eyre", "Stillwell", "Cave", "Graves"];
 
     // =========================================================================
     // Timing computation (port of anthem_utils.create_time_columns + web_app line builders)
@@ -219,59 +286,33 @@
     }
 
     function buildBrefLines(timedData) {
-        // Compute SSB cumulative word count boundaries as share of total words
-        var ssbTotal = 0;
-        var i;
-        for (i = 0; i < LINE_WORD_COUNTS.length; i++) {
-            ssbTotal += LINE_WORD_COUNTS[i];
-        }
-
-        var ssbCum = [];
-        var running = 0;
-        for (i = 0; i < LINE_WORD_COUNTS.length; i++) {
-            running += LINE_WORD_COUNTS[i];
-            ssbCum.push(running / ssbTotal);
-        }
-
-        // Compute cumulative note_length share for each BREF entry
-        var totalNoteLength = 0;
-        for (i = 0; i < timedData.length; i++) {
-            totalNoteLength += timedData[i].noteLength;
-        }
-
         var lines = [];
-        for (i = 0; i < LINE_WORD_COUNTS.length; i++) {
-            lines.push([]);
-        }
+        var lineWords = [];
 
-        var cumNoteLength = 0;
-        for (i = 0; i < timedData.length; i++) {
-            cumNoteLength += timedData[i].noteLength;
-            var cumShare = cumNoteLength / totalNoteLength;
-
-            var lineIdx = ssbCum.length - 1;
-            for (var j = 0; j < ssbCum.length; j++) {
-                if (cumShare <= ssbCum[j] + 1e-9) {
-                    lineIdx = j;
-                    break;
-                }
-            }
-
-            lines[lineIdx].push({
-                word: timedData[i].word,
-                startTime: Math.round(timedData[i].wordStartTime * 10000) / 10000,
-                endTime: Math.round(timedData[i].wordCumTime * 10000) / 10000,
-                duration: Math.round(timedData[i].wordTime * 10000) / 10000
+        for (var i = 0; i < timedData.length; i++) {
+            var row = timedData[i];
+            lineWords.push({
+                word: row.word,
+                startTime: Math.round(row.wordStartTime * 10000) / 10000,
+                endTime: Math.round(row.wordCumTime * 10000) / 10000,
+                duration: Math.round(row.wordTime * 10000) / 10000,
+                link: i < BREF_LINKS.length ? BREF_LINKS[i] : null
             });
+
+            if (BREF_LINE_BREAK_WORDS.indexOf(row.word) !== -1) {
+                lines.push({words: lineWords});
+                lineWords = [];
+            }
         }
 
-        return lines
-            .filter(function (line) { return line.length > 0; })
-            .map(function (line) { return {words: line}; });
+        if (lineWords.length) {
+            lines.push({words: lineWords});
+        }
+
+        return lines;
     }
 
     function computeTimingData(duration, bref) {
-        // Clamp duration
         duration = Math.max(30, Math.min(200, duration));
 
         var data = bref ? BREF_DATA : SSB_DATA;
@@ -285,53 +326,118 @@
         };
     }
 
-    // =========================================================================
-    // Player UI (from static/js/player.js)
-    // =========================================================================
-
     // DOM elements
-    var setupScreen = document.getElementById("setup-screen");
-    var playerScreen = document.getElementById("player-screen");
-    var durationSlider = document.getElementById("duration-slider");
-    var durationDisplay = document.getElementById("duration-display");
-    var brefToggle = document.getElementById("bref-toggle");
-    var prepareBtn = document.getElementById("prepare-btn");
-    var lyricsContainer = document.getElementById("lyrics-container");
-    var progressBarContainer = document.getElementById("progress-bar-container");
-    var progressBarFill = document.getElementById("progress-bar-fill");
-    var progressBarHandle = document.getElementById("progress-bar-handle");
-    var timeElapsed = document.getElementById("time-elapsed");
-    var timeTotal = document.getElementById("time-total");
-    var playPauseBtn = document.getElementById("play-pause-btn");
-    var backBtn = document.getElementById("back-btn");
+    const setupScreen = document.getElementById("setup-screen");
+    const playerScreen = document.getElementById("player-screen");
+    const durationSlider = document.getElementById("duration-slider");
+    const durationInput = document.getElementById("duration-input");
+    const brefToggle = document.getElementById("bref-toggle");
+    const prepareBtn = document.getElementById("prepare-btn");
+    const lyricsContainer = document.getElementById("lyrics-container");
+    const progressBarContainer = document.getElementById("progress-bar-container");
+    const progressBarFill = document.getElementById("progress-bar-fill");
+    const progressBarHandle = document.getElementById("progress-bar-handle");
+    const timeElapsed = document.getElementById("time-elapsed");
+    const timeTotal = document.getElementById("time-total");
+    const playPauseBtn = document.getElementById("play-pause-btn");
+    const backBtn = document.getElementById("back-btn");
+    const setupTitle = document.getElementById("setup-title");
+    const playerTitle = document.getElementById("player-title");
+    const playerHint = document.getElementById("player-hint");
 
     // State
-    var timingData = null;
-    var flatWords = [];
-    var isPlaying = false;
-    var startTimestamp = 0;
-    var pauseOffset = 0;
-    var currentWordIndex = -1;
-    var animFrameId = null;
-    var totalDuration = 0;
+    let timingData = null;
+    let flatWords = [];
+    let isPlaying = false;
+    let startTimestamp = 0;
+    let pauseOffset = 0;
+    let currentWordIndex = -1;
+    let animFrameId = null;
+    let totalDuration = 0;
+    const standardTitle = "Star Spangled Banner Tracker";
+    const baseballReferenceTitle = "Star Spangler Bannon Tracker";
+    const durationMin = parseFloat(durationSlider.min);
+    const durationMax = parseFloat(durationSlider.max);
 
     // Format time like anthem_utils.seconds_to_minutes
     function formatTime(totalSeconds) {
-        var minutes = Math.floor(totalSeconds / 60);
-        var seconds = (totalSeconds % 60).toFixed(1).padStart(4, "0");
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = (totalSeconds % 60).toFixed(1).padStart(4, "0");
         return minutes + ":" + seconds;
     }
 
-    // Duration slider
+    function getTrackerTitle() {
+        return brefToggle.checked ? baseballReferenceTitle : standardTitle;
+    }
+
+    function updateTrackerTitle() {
+        var trackerTitle = getTrackerTitle();
+        setupTitle.textContent = trackerTitle;
+        playerTitle.textContent = trackerTitle;
+        document.title = trackerTitle;
+    }
+
+    function updatePlayerHint(showBrefHint) {
+        if (!playerHint) return;
+        if (showBrefHint) {
+            playerHint.textContent = "Hint: Click a name to open their Baseball Reference page.";
+            playerHint.hidden = false;
+        } else {
+            playerHint.textContent = "";
+            playerHint.hidden = true;
+        }
+    }
+
+    function setWordState(element, state) {
+        var className = "word " + state;
+        if (element.tagName === "A") {
+            className += " word-link";
+        }
+        element.className = className;
+    }
+
+    function normalizeDuration(value) {
+        var parsed = parseFloat(value);
+        if (!isFinite(parsed)) {
+            parsed = parseFloat(durationSlider.value);
+        }
+        if (!isFinite(parsed)) {
+            parsed = durationMin;
+        }
+
+        var rounded = Math.round(parsed * 2) / 2;
+        return Math.max(durationMin, Math.min(durationMax, rounded));
+    }
+
+    function syncDurationControls(value) {
+        var normalized = normalizeDuration(value);
+        var formatted = normalized.toFixed(1);
+        durationSlider.value = formatted;
+        durationInput.value = formatted;
+        return normalized;
+    }
+
+    // Duration controls
     durationSlider.addEventListener("input", function () {
-        durationDisplay.textContent = this.value;
+        syncDurationControls(this.value);
+    });
+    durationInput.addEventListener("input", function () {
+        syncDurationControls(this.value);
+    });
+    durationInput.addEventListener("blur", function () {
+        syncDurationControls(this.value);
     });
 
-    // Prepare Track button — compute locally instead of fetching from server
+    syncDurationControls(durationSlider.value);
+    brefToggle.addEventListener("change", updateTrackerTitle);
+    updateTrackerTitle();
+
+        // Prepare Track button
     prepareBtn.addEventListener("click", function () {
-        var duration = parseFloat(durationSlider.value);
-        var bref = brefToggle.checked;
-        var data = computeTimingData(duration, bref);
+        const duration = syncDurationControls(durationInput.value);
+        const bref = brefToggle.checked;
+
+        const data = computeTimingData(duration, bref);
         timingData = data;
         totalDuration = data.duration;
         buildLyrics(data);
@@ -341,22 +447,35 @@
     function buildLyrics(data) {
         lyricsContainer.innerHTML = "";
         flatWords = [];
+        updatePlayerHint(Boolean(data.bref));
+
+        var hasBrefLinks = Boolean(data.bref);
 
         data.lines.forEach(function (line) {
             var lineDiv = document.createElement("div");
             lineDiv.className = "lyric-line";
 
             line.words.forEach(function (w) {
-                var span = document.createElement("span");
-                span.className = "word upcoming";
-                span.textContent = w.word;
-                lineDiv.appendChild(span);
+                var wordEl;
+
+                if (hasBrefLinks && w.link) {
+                    wordEl = document.createElement("a");
+                    wordEl.href = w.link;
+                    wordEl.target = "_blank";
+                    wordEl.rel = "noopener noreferrer";
+                } else {
+                    wordEl = document.createElement("span");
+                }
+
+                setWordState(wordEl, "upcoming");
+                wordEl.textContent = w.word;
+                lineDiv.appendChild(wordEl);
                 lineDiv.appendChild(document.createTextNode(" "));
 
                 flatWords.push({
                     startTime: w.startTime,
                     endTime: w.endTime,
-                    element: span,
+                    element: wordEl,
                     lineElement: lineDiv,
                 });
             });
@@ -371,6 +490,7 @@
     function showPlayer() {
         setupScreen.classList.remove("active");
         playerScreen.classList.add("active");
+        document.body.classList.add("player-active");
         resetPlayback();
     }
 
@@ -378,6 +498,7 @@
         stopPlayback();
         playerScreen.classList.remove("active");
         setupScreen.classList.add("active");
+        document.body.classList.remove("player-active");
     }
 
     function resetPlayback() {
@@ -391,8 +512,9 @@
 
         // Reset all words to upcoming
         flatWords.forEach(function (fw) {
-            fw.element.className = "word upcoming";
+            setWordState(fw.element, "upcoming");
         });
+        lyricsContainer.scrollTop = 0;
         updateLineHighlighting(-1);
     }
 
@@ -458,7 +580,7 @@
             pauseOffset = totalDuration * 1000;
             // Mark all words as sung
             flatWords.forEach(function (fw) {
-                fw.element.className = "word sung";
+                setWordState(fw.element, "sung");
             });
             updateLineHighlighting(-1);
             return;
@@ -491,11 +613,11 @@
     function updateWordStates(activeIdx) {
         flatWords.forEach(function (fw, i) {
             if (i < activeIdx) {
-                fw.element.className = "word sung";
+                setWordState(fw.element, "sung");
             } else if (i === activeIdx) {
-                fw.element.className = "word active";
+                setWordState(fw.element, "active");
             } else {
-                fw.element.className = "word upcoming";
+                setWordState(fw.element, "upcoming");
             }
         });
 
@@ -524,7 +646,39 @@
             if (activeLineIdx < allLines.length - 1) {
                 allLines[activeLineIdx + 1].classList.add("adjacent-line");
             }
+            scrollActiveLineIntoView(allLines[activeLineIdx]);
         }
+    }
+
+    function scrollActiveLineIntoView(activeLine) {
+        if (!activeLine) return;
+        if (!playerScreen.classList.contains("active")) return;
+        if (!window.matchMedia("(max-width: 600px)").matches) return;
+        if (lyricsContainer.clientHeight <= 0) return;
+
+        var containerHeight = lyricsContainer.clientHeight;
+        var currentScrollTop = lyricsContainer.scrollTop;
+        var lineTop = activeLine.offsetTop;
+        var lineBottom = lineTop + activeLine.offsetHeight;
+        var topThreshold = currentScrollTop + containerHeight * 0.2;
+        var bottomThreshold = currentScrollTop + containerHeight * 0.8;
+
+        if (lineTop >= topThreshold && lineBottom <= bottomThreshold) {
+            return;
+        }
+
+        var targetScrollTop = lineTop - (containerHeight - activeLine.offsetHeight) / 2;
+        var maxScrollTop = Math.max(0, lyricsContainer.scrollHeight - containerHeight);
+        targetScrollTop = Math.max(0, Math.min(maxScrollTop, targetScrollTop));
+
+        if (Math.abs(targetScrollTop - currentScrollTop) < 2) {
+            return;
+        }
+
+        lyricsContainer.scrollTo({
+            top: targetScrollTop,
+            behavior: isSeeking ? "auto" : "smooth",
+        });
     }
 
     function updateProgressBar(fraction) {
@@ -605,3 +759,4 @@
         }
     });
 })();
+
