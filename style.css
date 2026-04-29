@@ -121,11 +121,7 @@ p {
   .header h1 {
     font-size: 56pt;
   }
- 
-  /* .main, .jumbotron {
-    padding: 0 30px;
-  } */
-  
+
   .jumbotron {
     padding: 0 30px;
   }
@@ -246,7 +242,6 @@ th.rght, td.rght {
 
 .main .container {
   margin: 50px 10%;
-  /* display: flex; */
 }
 
 .fancy {
@@ -261,14 +256,11 @@ th.rght, td.rght {
 
 .fancy:before, .fancy:after {
   border-top: 2px solid #000;
-  /* border-bottom: 1px solid #000; */
   content: "";
   display: inline-block;
-  /* height: .2em; */
   position: relative;
   vertical-align: middle;
   width: 250px;
-  /* margin-bottom: .15em; */
 }
 
 .fancy:before {
@@ -399,21 +391,12 @@ hr {
   text-decoration: none;
 }
 
-/* .content {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-direction: row;
-  width: 100%;
-} */
-
 .content {
   width: 100%;
   display: inline-block;
 }
 
 .side {
-  /* flex-basis: 25%; */
   padding-right: 2rem;
   float: left;
   width: 25%;
@@ -470,15 +453,12 @@ hr {
 
 .pers-btn {
   display: flex;
-  /* flex-basis: 30%; */
   justify-content: center;
   cursor: pointer;
   background-color: white;
   border-radius: 5px;
   padding: 5px 0;
   border: solid 1px black;
-  /* text-align: center;
-  max-height: 35px; */
   width: 50%;
   margin: auto;
   flex-direction: column;
@@ -559,12 +539,9 @@ hr {
 }
 
 .bio {
-  /* flex-basis: 75%; */
   font-size: 14pt;
   line-height: 1.5em;
   box-sizing: border-box;
-  /* margin-left: 50px; */
-  /* margin-right: 100px; */
 }
 
 .bio img {
@@ -602,19 +579,10 @@ div#readmore {
   transition: background .2s;
 }
 
-/* .bio em {
-  font-family: 'LM Roman It','Times New Roman', Times, serif;
-  font-size: 16pt;
-} */
-
 @media screen and (max-width: 600px) {
   .bio {
     font-size: 10pt;
   }
-
-/*   .bio em {
-    font-size: 12pt;
-  } */
 }
 
 .rotate {
@@ -631,21 +599,7 @@ div#readmore {
   transform: rotate(-1deg);
   display: inline-block;
   background: linear-gradient(165deg, #97002E 0%, #000 100%);
-  /*animation: rotate 2.5s infinite;*/
 }
-/*
-@keyframes rotate {
-  0% {
-    transform: rotate(5deg);
-  }
-  50% {
-    transform: rotate(-5deg);
-  }
-  100% {
-    transform: rotate(5deg);
-  }
-}
-*/
 
 iframe#graph {
   width: 100%;
@@ -674,11 +628,6 @@ iframe#graph {
   flex-wrap: wrap;
   margin: 0 auto 4em auto;
 }
-
-/* .grid::after {
-  content: "";
-  flex: auto;
-} */
 
 .grid-box {
   width: 300px;
@@ -722,8 +671,6 @@ iframe#graph {
   max-width: 250px;
   max-height: 125px;
   padding: 10px;
-/*   max-width: 90%;
-  max-height: 90%; */
   transform: scale(0.8);
 }
 
@@ -742,16 +689,6 @@ iframe#graph {
     width: initial;
   }
 }
-
-/* .grid-box-top img#portrait {
-  max-height: 100%;
-  width: auto;
-}
-
-.grid-box-top img#landscape {
-  max-width: 100%;
-  height: auto;
-} */
 
 .grid-box-bottom {
   flex: 1;
@@ -1017,20 +954,6 @@ a.grid-box#blog {
   background-image: none;
 }
 
-/* .grid-box-blog {
-  margin: auto;
-  opacity: 0;
-  padding: 0.5em 1em;
-  border: solid 2px #fff;
-  border-radius: 10px;
-  font-size: 20pt;
-}
-
-#blog:hover .grid-box-blog {
-  opacity: 1;
-} */
-
-
 .jumbotron {
   background-repeat: no-repeat;
   background-size: cover;
@@ -1095,75 +1018,8 @@ a.grid-box#blog {
   padding-left: 1em;
   background-repeat: no-repeat;
 }
-/* 
-.btn img {
-  transition: .5s;
-}
 
-.btn:hover img {
-  opacity: 0;
-}
-
-#facebook {
-  background-image: url(assets/svg/facebook_enabled.svg);
-  background-repeat: no-repeat;
-  background-position: right;
-}
-
-#linkedin {
-  background-image: url(assets/svg/linkedin_enabled.svg);
-  background-repeat: no-repeat;
-  background-position: right;
-}
-
-#twitter {
-  background-image: url(assets/svg/twitter_enabled.svg);
-  background-repeat: no-repeat;
-  background-position: right;
-}
-
-#github {
-  background-image: url(assets/svg/github_def.svg);
-  background-repeat: no-repeat;
-  background-position: right;
-}
-
-#gmail {
-  background-image: url(assets/svg/gmail_enabled.svg);
-  background-repeat: no-repeat;
-  background-position: right;
-  cursor: initial;
-}
-
-#tooltip {
-  display: inline-block;
-  position: absolute;
-  border-radius: 0%;
-}
- */
-/* #tooltip:hover:after {
-  background: #333;
-  border-radius: 5px;
-  top: 50%;
-  color: #fff;
-  content: attr(title);
-  left: -50%;
-  padding: 5px 15px;
-  position: absolute;
-  width: 220px;
-}
-
-#tooltip:hover:before {
-  border: solid;
-  border-color: #333 transparent;
-  border-width: 6px 6px 0 6px;
-  bottom: 20px;
-  content: "";
-  left: 50%;
-  position: absolute;
-} */
-
-.footer { 
+.footer {
   background: #000;
 }
 
