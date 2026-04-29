@@ -3,4 +3,4 @@
 *.psd
 *.ico
 *.docx
-.claude/infra-state.json
+.claude/
