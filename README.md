@@ -1,2 +1,2 @@
 # benboro.github.io
-http://borovinsky.com/
+https://borovinsky.com/
