@@ -1,0 +1,14 @@
+# Force LF everywhere (recommended for cross-platform teams)
+* text=auto eol=lf
+
+# Treat these as binary so git doesn't try to normalize them
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.otf binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
