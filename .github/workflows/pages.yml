@@ -34,12 +34,12 @@ jobs:
             --exclude='ARCHITECTURE.md' \
             ./ _site/
           # Mirror the resume PDFs to the site root for clean URLs
-          cp assets/pdf/resume_ats.pdf _site/resume_ats.pdf
-          cp assets/pdf/resume_visual.pdf _site/resume_visual.pdf
-          cp assets/pdf/MLB_Player_Value.pdf _site/MLB_Player_Value.pdf
-          # Mirror project pages to the site root to preserve historical URLs
+          cp resume/resume_ats.pdf _site/resume_ats.pdf
+          cp resume/resume_visual.pdf _site/resume_visual.pdf
+          # Mirror project pages and PDFs to the site root to preserve historical URLs
           cp projects/lego_demo.html _site/lego_demo.html
           cp projects/star_spangler_bannon.html _site/star_spangler_bannon.html
+          cp projects/MLB_Player_Value.pdf _site/MLB_Player_Value.pdf
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

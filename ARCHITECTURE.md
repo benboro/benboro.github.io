@@ -19,20 +19,26 @@ index.html                  -- main single-page site (header, nav, sections, mod
 main.js                     -- tab switching, smooth scroll, modal open/close, "Read More"
 style.css                   -- all site styling, @font-face declarations
 network.html                -- R/visNetwork course graph; iframed by Education section
-lego_demo.html              -- R-rendered widget for the "LEGO Store Inventory" project
-star_spangler_bannon.html   -- R-rendered widget for the SSB analysis project
 CNAME                       -- GitHub Pages custom domain
 README.md                   -- one-line pointer to borovinsky.com
+
+projects/                   -- project deliverables linked from the Projects section
+  lego_demo.html              R-rendered widget for the "LEGO Store Inventory" project
+  star_spangler_bannon.html   R-rendered widget for the SSB analysis project
+  MLB_Player_Value.pdf        MLB player value paper
+
+resume/                     -- resume PDFs linked from the Personal section
+  resume_ats.pdf
+  resume_visual.pdf
 
 ssb-player/                 -- self-contained "Star Spangled Banner Tracker" mini-app
   index.html                  setup + player screens
   player.js                   timing/playback logic
   style.css                   scoped styling
 
-assets/
+assets/                     -- site chrome only (no content deliverables)
   img/                      -- bio photos, company logos, project covers, backgrounds
   svg/                      -- icons (social, glyphs, arrows, portrait)
-  pdf/                      -- resume_ats.pdf, resume_visual.pdf, MLB_Player_Value.pdf
   styles/                   -- .otf font files referenced by style.css @font-face
   bubble_map/horz/          -- additional asset bundle (bubble map visuals)
 ```
@@ -52,7 +58,8 @@ The site is a single document with content split into sections and toggled in-pl
 - **Local preview:** open `index.html` directly in a browser, or serve the repo root with any static server (e.g., `python -m http.server 8000`).
 - **Build:** none — files are served as-is.
 - **Deploy:** push to `master`. GitHub Pages serves the repo; `CNAME` controls the custom domain.
-- **Resumes:** `assets/pdf/resume_ats.pdf` and `assets/pdf/resume_visual.pdf` are updated periodically (see recent commits) and linked from the Personal section.
+- **Resumes:** `resume/resume_ats.pdf` and `resume/resume_visual.pdf` are updated periodically (see recent commits) and linked from the Personal section. The Pages deploy workflow (`.github/workflows/pages.yml`) mirrors them to the site root so legacy `/resume_ats.pdf` URLs keep resolving.
+- **Project artifacts:** project HTML pages and PDFs live in `projects/` (e.g., `projects/MLB_Player_Value.pdf`, `projects/star_spangler_bannon.html`). The Pages workflow also mirrors these to the site root for the same backward-compat reason.
 
 ## Design Philosophy & Tradeoffs
 
