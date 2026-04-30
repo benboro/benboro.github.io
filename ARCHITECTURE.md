@@ -58,8 +58,8 @@ The site is a single document with content split into sections and toggled in-pl
 - **Local preview:** open `index.html` directly in a browser, or serve the repo root with any static server (e.g., `python -m http.server 8000`).
 - **Build:** none — files are served as-is.
 - **Deploy:** push to `master`. GitHub Pages serves the repo; `CNAME` controls the custom domain.
-- **Resumes:** `resume/resume_ats.pdf` and `resume/resume_visual.pdf` are updated periodically (see recent commits) and linked from the Personal section. The Pages deploy workflow (`.github/workflows/pages.yml`) mirrors them to the site root so legacy `/resume_ats.pdf` URLs keep resolving.
-- **Project artifacts:** project HTML pages and PDFs live in `projects/` (e.g., `projects/MLB_Player_Value.pdf`, `projects/star_spangler_bannon.html`). The Pages workflow also mirrors these to the site root for the same backward-compat reason.
+- **Resumes:** `resume/resume_ats.pdf` and `resume/resume_visual.pdf` are updated periodically (see recent commits) and linked from the Personal section.
+- **Project artifacts:** project HTML pages and PDFs live in `projects/` (e.g., `projects/MLB_Player_Value.pdf`, `projects/star_spangler_bannon.html`) and are linked from the Projects section.
 
 ## Design Philosophy & Tradeoffs
 
