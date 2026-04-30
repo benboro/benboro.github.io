@@ -26,15 +26,14 @@ projects/                   -- project deliverables linked from the Projects sec
   lego_demo.html              R-rendered widget for the "LEGO Store Inventory" project
   star_spangler_bannon.html   R-rendered widget for the SSB analysis project
   MLB_Player_Value.pdf        MLB player value paper
+  ssb-player/                 self-contained "Star Spangled Banner Tracker" mini-app
+    index.html                  setup + player screens
+    player.js                   timing/playback logic
+    style.css                   scoped styling
 
 resume/                     -- resume PDFs linked from the Personal section
   resume_ats.pdf
   resume_visual.pdf
-
-ssb-player/                 -- self-contained "Star Spangled Banner Tracker" mini-app
-  index.html                  setup + player screens
-  player.js                   timing/playback logic
-  style.css                   scoped styling
 
 assets/                     -- site chrome only (no content deliverables)
   img/                      -- bio photos, company logos, project covers, backgrounds
@@ -51,7 +50,7 @@ The site is a single document with content split into sections and toggled in-pl
 2. `main.js` listens for nav clicks, slides the active section out, swaps `section-active`, and slides the new one in. It also reads `window.location.hash` on load so deep links like `#projects` open directly.
 3. Work Experience uses a grid of `.grid-box` tiles with `data-modal-target="#modal-…"`; `main.js` toggles `.active-modal` on the matching `<div class="modal">` and a shared `#overlay`.
 4. The Education section iframes `network.html` (course graph). The Projects section links to PDFs and to the R-rendered HTML widgets (`lego_demo.html`, `star_spangler_bannon.html`) as standalone pages.
-5. `ssb-player/` is independent: its own HTML/JS/CSS, linked to from the main site but with no shared code.
+5. `projects/ssb-player/` is independent: its own HTML/JS/CSS, linked to from the main site but with no shared code.
 
 ## Entry Points
 
