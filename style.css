@@ -1010,12 +1010,18 @@ a.grid-box#blog {
   justify-content: flex-end;
 }
 
+.btn {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  margin-left: 1em;
+  clip-path: circle(50%);
+}
+
 .btn > * {
   display: flex;
+  width: 40px;
   height: 40px;
-  width: auto;
-  pointer-events: fill;
-  padding-left: 1em;
   background-repeat: no-repeat;
 }
 
