@@ -98,6 +98,10 @@ $(function() {
     }
 })();
 
+// Deter casual image saving (DevTools still bypasses)
+$(document).on('contextmenu', 'img', function (e) { e.preventDefault(); });
+$(document).on('dragstart', 'img', function (e) { e.preventDefault(); });
+
 // Code for Read More/Less button
 function changeReadMore() { 
     const mycontent = document.getElementById('mybox1id'); 
