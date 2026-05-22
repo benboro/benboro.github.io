@@ -96,7 +96,7 @@ $(function() {
             });
         });
     }
-})();
+});
 
 // Deter casual image saving (DevTools still bypasses)
 $(document).on('contextmenu', 'img', function (e) { e.preventDefault(); });
