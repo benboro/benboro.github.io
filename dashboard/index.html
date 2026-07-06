@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dashboard</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .gate-card {
+      background: #161b22;
+      border-top: 2px solid #58a6ff;
+      padding: 32px 36px;
+      width: min(92vw, 360px);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .gate-card h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .gate-card input[type="password"] {
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+    .gate-card input[type="password"]:focus-visible {
+      border-color: #58a6ff;
+      outline: none;
+    }
+    .gate-card button {
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #373e47;
+      color: #e6edf3;
+      padding: 10px 12px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .gate-card button:hover,
+    .gate-card button:focus-visible {
+      border-color: #58a6ff;
+      outline: none;
+    }
+    .gate-card button[disabled] {
+      opacity: 0.6;
+      cursor: wait;
+    }
+    .gate-status {
+      margin: 0;
+      min-height: 1.2em;
+      font-size: 13px;
+      color: #f85149;
+    }
+    .gate-status.gate-status-progress { color: #8b949e; }
+  </style>
+</head>
+<body>
+  <main>
+    <form id="gate-form" class="gate-card">
+      <h1>Dashboard</h1>
+      <input type="password" id="gate-password" name="password" placeholder="Password"
+             autocomplete="current-password" autofocus required>
+      <button type="submit" id="gate-submit">Unlock</button>
+      <p id="gate-status" class="gate-status" role="status"></p>
+    </form>
+  </main>
+  <script>
+  (function () {
+    "use strict";
+
+    var SNAPSHOT_URL = "snapshot.enc";
+    var MAGIC = "DASHENC1";
+    var SALT_B64 = "r7vSgmJCElZSHYGYYbFkTg==";
+    var ITERATIONS = 600000;
+    var NONCE_LEN = 12;
+
+    var MAGIC_BYTES = new TextEncoder().encode(MAGIC);
+
+    function b64ToBytes(b64) {
+      var bin = atob(b64);
+      var out = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+
+    async function deriveKey(password) {
+      var material = await crypto.subtle.importKey(
+        "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name: "PBKDF2", salt: b64ToBytes(SALT_B64), iterations: ITERATIONS, hash: "SHA-256" },
+        material,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]);
+    }
+
+    async function fetchAndDecrypt(key) {
+      /* cache: no-store + ts param bust both the browser cache and the GitHub
+         Pages CDN so background refreshes see new publishes promptly. */
+      var res = await fetch(SNAPSHOT_URL + "?ts=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) throw new Error("snapshot fetch failed: " + res.status);
+      var buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.length < MAGIC_BYTES.length + NONCE_LEN + 16) throw new Error("snapshot truncated");
+      for (var i = 0; i < MAGIC_BYTES.length; i++) {
+        if (buf[i] !== MAGIC_BYTES[i]) throw new Error("not a dashboard snapshot");
+      }
+      var nonce = buf.slice(MAGIC_BYTES.length, MAGIC_BYTES.length + NONCE_LEN);
+      var ciphertext = buf.slice(MAGIC_BYTES.length + NONCE_LEN);
+      var plain = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: nonce, additionalData: MAGIC_BYTES }, key, ciphertext);
+      var text = await new Response(
+        new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+      return JSON.parse(text);
+    }
+
+    /* Shared with the payload runtime (survives document.write). */
+    window.__dashCrypto = { fetchAndDecrypt: fetchAndDecrypt };
+
+    var form = document.getElementById("gate-form");
+    var input = document.getElementById("gate-password");
+    var submit = document.getElementById("gate-submit");
+    var statusEl = document.getElementById("gate-status");
+
+    function setStatus(message, progress) {
+      statusEl.textContent = message || "";
+      statusEl.classList.toggle("gate-status-progress", !!progress);
+    }
+
+    function setBusy(busy) {
+      submit.disabled = busy;
+      input.disabled = busy;
+    }
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      var password = input.value;
+      if (!password) return;
+      setStatus("Unlocking…", true);
+      setBusy(true);
+      var key;
+      try {
+        key = await deriveKey(password);
+      } catch (err) {
+        setStatus("This browser does not support the required crypto APIs.");
+        setBusy(false);
+        return;
+      }
+      var payload;
+      try {
+        payload = await fetchAndDecrypt(key);
+      } catch (err) {
+        /* AES-GCM auth failure surfaces as OperationError = wrong password;
+           anything else is a network/CDN problem. */
+        if (err && err.name === "OperationError") {
+          setStatus("Wrong password.");
+        } else {
+          setStatus("Could not load the dashboard. Check your connection and try again.");
+        }
+        setBusy(false);
+        input.focus();
+        input.select();
+        return;
+      }
+      window.__dashKey = key;
+      window.__dashPayload = payload;
+      document.open();
+      document.write(payload.page_html);
+      document.close();
+    });
+  }());
+  </script>
+</body>
+</html>
