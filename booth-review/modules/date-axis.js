@@ -1,0 +1,401 @@
+/**
+ * Date x-axis geometry (04.11, SITE-48).
+ *
+ * DOM-free: no reference to window/document/Plotly. Every season that has
+ * telecasts gets one block, trimmed to its own earliest..latest telecast plus
+ * a small pad, at one data unit per calendar day; blocks sit left to right
+ * separated by a fixed gap. A dot's x is its block start + pad + days since
+ * the season's first telecast + the ET kickoff fraction of the day.
+ *
+ * Dates are ET calendar days straight from the shipped `date` column; kickoff
+ * fractions read the HH:MM of the already-ET ISO string. No timezone
+ * conversion and no `new Date('YYYY-MM-DD')` (which parses as UTC) happens here.
+ */
+
+import { MONTHS } from './format.js';
+
+/** Day-units of empty space inside each block edge. */
+export const DATE_PAD = 1;
+
+/** Day-units between neighbouring blocks. */
+export const DATE_GAP = 7;
+
+const MS_PER_DAY = 86400000;
+
+/**
+ * Integer days since 1970-01-01 for an ET calendar date.
+ * @param {string} ymd - "YYYY-MM-DD".
+ * @returns {number}
+ */
+export function epochDay(ymd) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) / MS_PER_DAY;
+}
+
+/**
+ * Fraction of the ET day at kickoff; a missing kickoff sits at midday.
+ * @param {string|null} iso - ET ISO string such as "2021-10-02T22:30:00-04:00".
+ * @returns {number} in [0, 1).
+ */
+export function kickoffFraction(iso) {
+  if (iso == null) return 0.5;
+  const h = Number(iso.slice(11, 13));
+  const m = Number(iso.slice(14, 16));
+  return (h * 60 + m) / 1440;
+}
+
+/**
+ * @typedef {object} Block
+ * @property {number} season
+ * @property {number} minDay - epoch day of the season's first telecast.
+ * @property {number} maxDay - epoch day of the season's last telecast.
+ * @property {number} start - data x of the block's left edge.
+ * @property {number} end - data x of the block's right edge.
+ * @property {number|null} postDay - epoch day of the season's first bowl or playoff telecast, null when none (04.17 D-01).
+ */
+
+/**
+ * Builds the season blocks and per-telecast date x from ALL telecasts.
+ * @param {number[]} season - telecast season column.
+ * @param {string[]} date - ET "YYYY-MM-DD" column.
+ * @param {(string|null)[]} kickoff - ET ISO kickoff column.
+ * @param {string[]} [gameType] - optional game_type column; its 'bowl' and 'playoff' rows
+ *   set each block's postDay (04.17 D-01). Omitted, every postDay is null.
+ * @returns {{dateX: number[], axis: {pad: number, gap: number, blocks: Block[]}}}
+ */
+export function buildDateAxis(season, date, kickoff, gameType) {
+  const n = season.length;
+  const days = new Array(n);
+  const span = new Map();
+  for (let i = 0; i < n; i += 1) {
+    const day = epochDay(date[i]);
+    days[i] = day;
+    const s = span.get(season[i]);
+    if (s === undefined) span.set(season[i], { minDay: day, maxDay: day });
+    else {
+      if (day < s.minDay) s.minDay = day;
+      if (day > s.maxDay) s.maxDay = day;
+    }
+    // Conference championships are 'regular' and never start a band (D-01).
+    if (gameType && (gameType[i] === 'bowl' || gameType[i] === 'playoff')) {
+      const t = span.get(season[i]);
+      if (t.postDay === undefined || day < t.postDay) t.postDay = day;
+    }
+  }
+  const blocks = [];
+  let cursor = 0;
+  for (const s of Array.from(span.keys()).sort((a, b) => a - b)) {
+    const { minDay, maxDay, postDay } = span.get(s);
+    const width = maxDay - minDay + 1 + 2 * DATE_PAD;
+    blocks.push({ season: s, minDay, maxDay, start: cursor, end: cursor + width, postDay: postDay ?? null });
+    cursor += width + DATE_GAP;
+  }
+  const byseason = new Map(blocks.map((b) => [b.season, b]));
+  const dateX = new Array(n);
+  for (let i = 0; i < n; i += 1) {
+    const b = byseason.get(season[i]);
+    dateX[i] = b.start + DATE_PAD + (days[i] - b.minDay) + kickoffFraction(kickoff[i]);
+  }
+  return { dateX, axis: { pad: DATE_PAD, gap: DATE_GAP, blocks } };
+}
+
+/**
+ * Blocks inside a season filter.
+ * @param {{blocks: Block[]}} axis
+ * @param {[number, number]|null} seasons - null for all, else inclusive [from, to].
+ * @returns {Block[]}
+ */
+export function shownBlocks(axis, seasons) {
+  if (seasons == null) return axis.blocks;
+  return axis.blocks.filter((b) => b.season >= seasons[0] && b.season <= seasons[1]);
+}
+
+/**
+ * Visible x range for a season filter: exactly the first shown block's start
+ * to the last shown block's end. No shown block falls back to the full range.
+ * @param {{blocks: Block[]}} axis
+ * @param {[number, number]|null} seasons
+ * @returns {[number, number]}
+ */
+export function seasonRange(axis, seasons) {
+  const shown = shownBlocks(axis, seasons);
+  const use = shown.length ? shown : axis.blocks;
+  return [use[0].start, use[use.length - 1].end];
+}
+
+/**
+ * Divider x positions at the center of each gap between consecutive blocks.
+ * @param {Block[]} blocks
+ * @returns {number[]}
+ */
+export function gapDividers(blocks) {
+  const out = [];
+  for (let i = 1; i < blocks.length; i += 1) out.push((blocks[i - 1].end + blocks[i].start) / 2);
+  return out;
+}
+
+const round4 = (v) => Math.round(v * 10000) / 10000;
+const round2 = (v) => Math.round(v * 100) / 100;
+
+/** Text of the single postseason band label (04.17 D-08). */
+export const POSTSEASON_LABEL = 'Bowls & CFP';
+
+/**
+ * One band per block with a bowl or playoff game (04.17 D-02, D-03). The left edge is
+ * the whole-day boundary of the first such day (no kickoff fraction, so a regular dot
+ * on that day sits inside); the right edge is the gap divider, or `rightEdge` for the
+ * last block.
+ * @param {Block[]} blocks - the shown blocks, ascending.
+ * @param {number} rightEdge - the home x range's right end.
+ * @returns {{season: number, x0: number, x1: number}[]}
+ */
+export function postseasonBands(blocks, rightEdge) {
+  const out = [];
+  blocks.forEach((b, i) => {
+    if (b.postDay == null) return;
+    const next = blocks[i + 1];
+    out.push({
+      season: b.season,
+      x0: round4(b.start + DATE_PAD + (b.postDay - b.minDay)),
+      x1: next ? round4((b.end + next.start) / 2) : rightEdge,
+    });
+  });
+  return out;
+}
+
+/**
+ * Where the single rotated "Bowls & CFP" label sits (04.17 D-08, amended): bottom-to-top
+ * at the bottom right of the rightmost band that fits. `x` is the band's visible right
+ * edge (the chart insets it a few px). A band fits when its visible pixel width holds the
+ * label's thickness (font size plus box pad plus the right inset) and the main plot
+ * height holds its length (text plus box pad plus the bottom and top insets).
+ * @param {{season: number, x0: number, x1: number}[]} bands
+ * @param {[number, number]} range - visible data x range.
+ * @param {number} plotPx - plot width in px.
+ * @param {{fontSize?: number, measure?: (text: string) => (number|undefined), heightPx?: number}} [opts]
+ *   heightPx is the main (log or linear) plot height; unset means unlimited.
+ * @returns {{season: number, x: number}|null} null when no band fits.
+ */
+export function postseasonLabel(bands, range, plotPx, { fontSize = 12, measure, heightPx = Infinity } = {}) {
+  const [lo, hi] = range;
+  const measured = measure?.(POSTSEASON_LABEL);
+  const text = Number.isFinite(measured) ? measured : 0.6 * fontSize * POSTSEASON_LABEL.length;
+  const thickness = fontSize + 2.5 + 2 * 4;
+  const length = text + 2.5 + 2 * 4;
+  if (heightPx < length) return null;
+  for (let i = bands.length - 1; i >= 0; i -= 1) {
+    const a = Math.max(bands[i].x0, lo);
+    const b = Math.min(bands[i].x1, hi);
+    if (b <= a) continue;
+    if (((b - a) * plotPx) / (hi - lo) >= thickness) // Floor, never round up: Plotly hides an axis-referenced annotation that sits past the range end.
+      return { season: bands[i].season, x: Math.floor(b * 10000) / 10000 };
+  }
+  return null;
+}
+
+/**
+ * Lower-row tier from pixels per day: 1 weekly dates, 2 biweekly dates,
+ * 3 month names, 4 unlabeled month ticks, 5 nothing.
+ * @param {number} ppd
+ * @returns {1|2|3|4|5}
+ */
+function tierFor(ppd) {
+  if (7 * ppd >= 56) return 1;
+  if (14 * ppd >= 56) return 2;
+  if (30 * ppd >= 40) return 3;
+  if (30 * ppd >= 6) return 4;
+  return 5;
+}
+
+/**
+ * Lower-row ticks for one tier, walking each block's calendar days.
+ * @returns {{tickvals: number[], ticktext: string[]}}
+ */
+function lowerRow(blocks, lo, hi, tier) {
+  const tickvals = [];
+  const ticktext = [];
+  if (tier === 5) return { tickvals, ticktext };
+  for (const b of blocks) {
+    let saturdayIndex = 0;
+    for (let day = b.minDay; day <= b.maxDay; day += 1) {
+      const dt = new Date(day * MS_PER_DAY);
+      const base = b.start + DATE_PAD + (day - b.minDay);
+      if (tier <= 2) {
+        if (dt.getUTCDay() !== 6) continue;
+        const keep = tier === 1 || saturdayIndex % 2 === 0;
+        saturdayIndex += 1;
+        if (!keep) continue;
+        const x = round4(base + 0.5);
+        if (x < lo || x > hi) continue;
+        tickvals.push(x);
+        ticktext.push(`${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}`);
+      } else {
+        if (dt.getUTCDate() !== 1) continue;
+        const x = round4(base);
+        if (x < lo || x > hi) continue;
+        tickvals.push(x);
+        ticktext.push(tier === 3 ? MONTHS[dt.getUTCMonth()] : '');
+      }
+    }
+  }
+  return { tickvals, ticktext };
+}
+
+/**
+ * True when neighbouring lower-row labels clear each other by `minGap` px.
+ * @param {{tickvals: number[], ticktext: string[]}} row
+ * @returns {boolean}
+ */
+function labelsFit(row, pxPerUnit, charPx, boxPad, minGap) {
+  const { tickvals, ticktext } = row;
+  for (let i = 1; i < tickvals.length; i += 1) {
+    const wPrev = charPx * ticktext[i - 1].length + boxPad;
+    const wCur = charPx * ticktext[i].length + boxPad;
+    const dist = (tickvals[i] - tickvals[i - 1]) * pxPerUnit;
+    if (dist - (wPrev + wCur) / 2 < minGap) return false;
+  }
+  return true;
+}
+
+/**
+ * Places labels left to right, then pulls them back inside the right limit,
+ * and reports which cannot sit validly (outside the limits or off their block).
+ * @param {{c: number, a: number, b: number, w: number}[]} items - desired px
+ *   center, own visible px span [a, b], and box width, in order.
+ * @returns {{centers: number[], invalid: boolean[]}}
+ */
+function placeRow(items, gapPx, leftLimit, rightLimit) {
+  const centers = items.map((it) => it.c);
+  let prevRight = -Infinity;
+  items.forEach((it, i) => {
+    centers[i] = Math.max(centers[i], prevRight + gapPx + it.w / 2);
+    prevRight = centers[i] + it.w / 2;
+  });
+  let nextLeft = Infinity;
+  for (let i = items.length - 1; i >= 0; i -= 1) {
+    const w = items[i].w;
+    const maxCenter = Math.min(rightLimit - w / 2, nextLeft - gapPx - w / 2);
+    centers[i] = Math.min(centers[i], maxCenter);
+    nextLeft = centers[i] - w / 2;
+  }
+  const invalid = items.map((it, i) => {
+    const left = centers[i] - it.w / 2;
+    const right = centers[i] + it.w / 2;
+    if (left < leftLimit || right > rightLimit) return true;
+    return !(left < it.b && right > it.a);
+  });
+  return { centers, invalid };
+}
+
+/**
+ * Adaptive two-row label rule (D-11): a lower-row tier from px-per-day and a
+ * collision-free season row. All season labels switch to two-digit years
+ * together; a label that still cannot be placed is hidden as a last resort.
+ * @param {Block[]} blocks - the shown blocks, ascending.
+ * @param {[number, number]} range - visible data x range [lo, hi].
+ * @param {number} plotPx - plot width in px.
+ * @param {{mobile?: boolean, marginLeft?: number, marginRight?: number,
+ *   measure?: (text: string) => (number|undefined)}} [opts] - `measure` returns a
+ *   season label's rendered text width in px (the chart hook measures the drawn
+ *   annotations); without it, or when it returns a non-finite value, the width is
+ *   estimated from the font size.
+ * @returns {{tier: number, tickvals: number[], ticktext: string[], twoDigit: boolean,
+ *   seasons: {season: number, x: number, xshift: number, label: string, visible: boolean}[]}}
+ */
+export function dateAxisLabels(blocks, range, plotPx, { mobile = false, marginLeft = 70, marginRight = 24, measure } = {}) {
+  const [lo, hi] = range;
+  const pxPerUnit = plotPx / (hi - lo);
+  const fontSize = mobile ? 10 : 14;
+  const charPx = 0.62 * fontSize;
+  // Plotly's annotation box is about 2.5px wider than its text (measured at 10px bold).
+  const BOX_PAD = 2.5;
+  // Tick labels never rotate (tickangle 0), so a tier is only usable when every
+  // neighbouring pair of its labels sits flat with at least this many px between them.
+  let tier = tierFor(pxPerUnit);
+  let row = lowerRow(blocks, lo, hi, tier);
+  while (tier < 4 && !labelsFit(row, pxPerUnit, charPx + 0, BOX_PAD, 8)) {
+    tier += 1;
+    row = lowerRow(blocks, lo, hi, tier);
+  }
+  const { tickvals, ticktext } = row;
+  const leftLimit = -marginLeft + 2;
+  const rightLimit = plotPx + marginRight - 2;
+  const toPx = (x) => (x - lo) * pxPerUnit;
+
+  const entries = blocks.map((b) => {
+    const a = Math.max(b.start, lo);
+    const e = Math.min(b.end, hi);
+    const overlaps = e > a && b.end > lo && b.start < hi;
+    const x = round4(overlaps ? (a + e) / 2 : Math.min(Math.max((b.start + b.end) / 2, lo), hi));
+    return { block: b, x, overlaps, a: toPx(a), b: toPx(e), c: toPx(x) };
+  });
+  const full = (s) => String(s);
+  const short = (s) => `'${String(s).slice(-2)}`;
+  const bare = (s) => String(s).slice(-2);
+  // Season labels are bold, and bold digits run wider than the estimate in some
+  // fonts (DejaVu Sans, CI's system-ui), so prefer the rendered width.
+  const labelWidth = (text) => {
+    const measured = measure?.(text);
+    return (Number.isFinite(measured) ? measured : charPx * text.length) + BOX_PAD;
+  };
+  const result = entries.map((en) => ({
+    season: en.block.season,
+    x: en.x,
+    xshift: 0,
+    label: full(en.block.season),
+    visible: en.overlaps,
+  }));
+  if (blocks.length === 1) return { tier, tickvals, ticktext, twoDigit: false, seasons: result };
+
+  // Forms tried in order: full year, '24, then bare 24 when even the apostrophe form
+  // cannot fit (13 seasons on a 360px phone). Only the last form may hide a label.
+  const forms = [full, short, bare];
+  const run = (formIndex) => {
+    const fmt = forms[formIndex];
+    const twoDigit = formIndex > 0;
+    const lastForm = formIndex === forms.length - 1;
+    const gap = twoDigit ? 1 : 2;
+    let active = entries.map((en, i) => (en.overlaps ? i : -1)).filter((i) => i >= 0);
+    const placed = new Map();
+    const hidden = new Set();
+    // Two-digit form may drop unplaceable labels and re-run once; full years never hide.
+    for (let pass = 0; pass < 2; pass += 1) {
+      const items = active.map((i) => ({
+        c: entries[i].c,
+        a: entries[i].a,
+        b: entries[i].b,
+        w: labelWidth(fmt(entries[i].block.season)),
+      }));
+      const { centers, invalid } = placeRow(items, gap, leftLimit, rightLimit);
+      placed.clear();
+      active.forEach((i, k) => placed.set(i, centers[k]));
+      if (!invalid.some(Boolean)) return { ok: true, placed, hidden };
+      if (!lastForm) return { ok: false };
+      for (const i of active.filter((_, k) => invalid[k])) hidden.add(i);
+      active = active.filter((i) => !hidden.has(i));
+    }
+    // Leftovers from the final re-run are hidden too (last resort, never truncated).
+    for (const i of Array.from(placed.keys())) if (hidden.has(i)) placed.delete(i);
+    return { ok: true, placed, hidden };
+  };
+
+  let formIndex = 0;
+  let outcome = run(0);
+  while (!outcome.ok) {
+    formIndex += 1;
+    outcome = run(formIndex);
+  }
+  const twoDigit = formIndex > 0;
+  const fmt = forms[formIndex];
+  const seasons = result.map((r, i) => {
+    const center = outcome.placed.get(i);
+    const hide = outcome.hidden.has(i) || center === undefined;
+    return {
+      ...r,
+      label: fmt(r.season),
+      visible: r.visible && !hide,
+      xshift: hide ? 0 : round2(center - entries[i].c),
+    };
+  });
+  return { tier, tickvals, ticktext, twoDigit, seasons };
+}

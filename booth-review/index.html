@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="An interactive scatter of college football games and their public viewer counts by network, announcer, and matchup quality.">
+<meta name="site-data-version" content="80df638035">
+<meta name="booth-review-sports" content="cfb">
+<title>booth-review · college football broadcast crews and viewership</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="app">
+<noscript>
+  <p>The chart needs JavaScript. The methodology and coverage pages work without it: <a href="methodology.html">Methodology</a>, <a href="coverage.html">Coverage</a>.</p>
+</noscript>
+
+<header id="topbar">
+  <a href="index.html" class="site-title">booth-review</a>
+</header>
+
+<nav id="toolbar" aria-label="Filters">
+  <button type="button" id="clear-filters">Clear all filters</button>
+  <button type="button" id="filters-button" class="mobile-only" popovertarget="filters-sheet" aria-haspopup="dialog" aria-expanded="false">Filters</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-announcers" popovertarget="pop-announcers" aria-haspopup="dialog" aria-expanded="false">Announcers</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-seasons" popovertarget="pop-seasons" aria-haspopup="dialog" aria-expanded="false">Seasons</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-networks" popovertarget="pop-networks" aria-haspopup="dialog" aria-expanded="false">Networks</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-kickoff" popovertarget="pop-kickoff" aria-haspopup="dialog" aria-expanded="false">Kickoff</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-role" popovertarget="pop-role" aria-haspopup="dialog" aria-expanded="false">Role</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-conference" popovertarget="pop-conference" aria-haspopup="dialog" aria-expanded="false">Conference</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-school" popovertarget="pop-school" aria-haspopup="dialog" aria-expanded="false">School</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-postseason" popovertarget="pop-postseason" aria-haspopup="dialog" aria-expanded="false">Bowls/Playoffs</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-game" popovertarget="pop-game" aria-haspopup="dialog" aria-expanded="false">Game</button>
+</nav>
+<script src="toolbar-fit.js"></script>
+
+<section id="selection-bar" aria-label="Selected announcers and match summary">
+  <div id="selection-row" class="selection-row" hidden>
+    <ul id="chips" aria-label="Selected people"></ul>
+
+    <div class="toggle-group">
+      <button type="button" id="compare-toggle" class="toggle" aria-pressed="false" aria-describedby="compare-help" aria-label="Compare people" title="Compare people"><span class="lbl-long">Compare people</span><span class="lbl-short">Compare</span></button>
+      <span id="compare-help" class="visually-hidden">Compare up to 4 people — each gets its own shape.</span>
+      <button type="button" id="together-toggle" class="toggle" aria-pressed="false" aria-describedby="together-help" aria-label="Called together" title="Called together"><span class="lbl-long">Called together</span><span class="lbl-short">Together</span></button>
+      <span id="together-help" class="visually-hidden">Show only games where everyone selected shared the booth.</span>
+      <button type="button" id="clear-selection" aria-label="Clear selection" title="Clear selection"><span class="lbl-long">Clear selection</span><span class="lbl-short">Clear</span></button>
+    </div>
+  </div>
+
+  <p id="compare-note" hidden>Compare mode holds up to 4 people.</p>
+
+  <div id="summary" aria-live="polite">
+    <span id="summary-count" class="summary-count"></span>
+    <span id="summary-detail"></span>
+  </div>
+</section>
+
+<div id="pop-announcers" class="filter-popover" popover="auto" role="dialog" aria-label="Announcers">
+  <section id="filter-announcers">
+    <div class="section-head">
+      <h3>Announcers</h3>
+      <button type="button" class="group-reset" data-reset="announcers" aria-label="Reset Announcers" aria-disabled="true">Reset</button>
+    </div>
+    <div class="search-field">
+      <label for="person-search" class="visually-hidden">Search announcers</label>
+      <input type="text" id="person-search" role="combobox" aria-controls="person-results" aria-expanded="true" aria-autocomplete="list" placeholder="Type a name, or pick from the list" autocomplete="off">
+      <ul id="person-results" role="listbox" aria-multiselectable="true" aria-label="Announcers"></ul>
+    </div>
+  </section>
+</div>
+
+<div id="pop-seasons" class="filter-popover" popover="auto" role="dialog" aria-label="Seasons">
+  <section id="filter-seasons">
+    <div class="section-head">
+      <h3>Seasons</h3>
+      <button type="button" class="group-reset" data-reset="seasons" aria-label="Reset Seasons" aria-disabled="true">Reset</button>
+    </div>
+    <label for="season-from">From</label>
+    <select id="season-from"></select>
+    <label for="season-to">To</label>
+    <select id="season-to"></select>
+    <details id="season-counts-details">
+      <summary>Games per season</summary>
+      <ul id="season-counts"></ul>
+    </details>
+  </section>
+</div>
+
+<div id="pop-networks" class="filter-popover" popover="auto" role="dialog" aria-label="Networks">
+  <section id="filter-networks">
+    <div class="section-head">
+      <h3>Networks</h3>
+      <button type="button" class="group-reset" data-reset="networks" aria-label="Reset Networks" aria-disabled="true">Reset</button>
+    </div>
+  </section>
+</div>
+
+<div id="pop-kickoff" class="filter-popover" popover="auto" role="dialog" aria-label="Kickoff time">
+  <section id="filter-slots">
+    <div class="section-head">
+      <h3>Kickoff time</h3>
+      <button type="button" class="group-reset" data-reset="kickoff" aria-label="Reset Kickoff time" aria-disabled="true">Reset</button>
+    </div>
+    <div class="check-item"><label class="check-row"><input type="checkbox" name="slot" value="noon"> <span class="option-name">Noon (before 2 PM ET)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+    <div class="check-item"><label class="check-row"><input type="checkbox" name="slot" value="afternoon"> <span class="option-name">Afternoon (2–6 PM ET)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+    <div class="check-item"><label class="check-row"><input type="checkbox" name="slot" value="prime"> <span class="option-name">Prime time (6–10 PM ET)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+    <div class="check-item"><label class="check-row"><input type="checkbox" name="slot" value="late"> <span class="option-name">After dark (10 PM ET or later)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+  </section>
+</div>
+
+<div id="pop-role" class="filter-popover" popover="auto" role="dialog" aria-label="Role">
+  <section id="filter-role">
+    <div class="section-head">
+      <h3>Role</h3>
+      <button type="button" class="group-reset" data-reset="role" aria-label="Reset Role" aria-disabled="true">Reset</button>
+    </div>
+    <label><input type="checkbox" name="role" value="pbp"> <span class="option-name"><span class="role-pill" data-role="pbp" role="img" aria-label="PBP, play-by-play">PBP</span></span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label>
+    <label><input type="checkbox" name="role" value="analyst"> <span class="option-name"><span class="role-pill" data-role="analyst" role="img" aria-label="Analyst">Analyst</span></span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label>
+  </section>
+</div>
+
+<div id="pop-conference" class="filter-popover" popover="auto" role="dialog" aria-label="Conference">
+  <section id="filter-conference">
+    <div class="section-head">
+      <h3>Filter by conference</h3>
+      <button type="button" class="group-reset" data-reset="conference" aria-label="Reset conference filter" aria-disabled="true">Reset</button>
+    </div>
+    <label for="conference-search" class="visually-hidden">Search conferences</label>
+    <input type="search" id="conference-search" placeholder="Search conferences" autocomplete="off">
+    <p class="helper">Matches when either team was in a selected conference that season.</p>
+    <fieldset id="conference-list">
+      <legend class="visually-hidden">Conference, multi-select</legend>
+    </fieldset>
+  </section>
+</div>
+
+<div id="pop-school" class="filter-popover" popover="auto" role="dialog" aria-label="School">
+  <section id="filter-school">
+    <div class="section-head">
+      <h3>Filter by school</h3>
+      <button type="button" class="group-reset" data-reset="school" aria-label="Reset school filter" aria-disabled="true">Reset</button>
+    </div>
+    <div id="school-match" class="segmented" role="group" aria-label="School match" hidden><button type="button" data-match="either" aria-pressed="true">Either team</button><button type="button" data-match="both" aria-pressed="false">Head-to-head</button></div>
+    <label for="school-search" class="visually-hidden">Search schools</label>
+    <input type="search" id="school-search" placeholder="Search schools" autocomplete="off">
+    <p class="helper">Either team keeps games with any selected school. Head-to-head, available with two schools, keeps only games between them. Other games fade unless Hide is on.</p>
+    <ul id="school-chips" aria-label="Selected schools"></ul>
+    <fieldset id="school-list">
+      <legend class="visually-hidden">School, multi-select</legend>
+    </fieldset>
+  </section>
+</div>
+
+<div id="pop-postseason" class="filter-popover" popover="auto" role="dialog" aria-label="Bowls/Playoffs">
+  <section id="filter-postseason">
+    <div class="section-head">
+      <h3>Bowls/Playoffs</h3>
+      <button type="button" class="group-reset" data-reset="postseason" aria-label="Reset bowls and playoffs filter" aria-disabled="true">Reset</button>
+    </div>
+    <div id="postseason-options" class="radio-list" role="radiogroup" aria-label="Bowls/Playoffs">
+      <button type="button" role="radio" aria-checked="false" tabindex="0" data-postseason="all">All games<span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-postseason="exclude">Exclude bowls & playoffs<span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-postseason="only">Only bowls & playoffs<span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></button>
+    </div>
+  </section>
+</div>
+
+<div id="pop-game" class="filter-popover" popover="auto" role="dialog" aria-label="Game">
+  <section id="filter-game">
+    <div class="game-sticky">
+      <div class="section-head">
+        <h3>Game</h3>
+        <button type="button" class="group-reset" data-reset="game" aria-label="Reset game filter" aria-disabled="true">Reset</button>
+      </div>
+      <label for="game-search" class="visually-hidden">Search games</label>
+      <input type="search" id="game-search" placeholder="Search bowls and rivalries..." autocomplete="off">
+    </div>
+    <p id="game-empty" class="helper" role="status" hidden></p>
+    <div id="game-options" class="radio-list" role="radiogroup" aria-label="Game"></div>
+  </section>
+</div>
+
+<div id="filters-sheet" class="filters-sheet" popover="auto" role="dialog" aria-labelledby="filters-sheet-title">
+  <div class="sheet-header">
+    <h2 id="filters-sheet-title">Filters</h2>
+    <div class="sheet-clear-slot"></div>
+  </div>
+  <div class="sheet-body"></div>
+  <div class="sheet-footer">
+    <button type="button" id="filters-show-results">Show results</button>
+  </div>
+</div>
+
+<main id="chart-area">
+  <div id="chart-tabs" class="chart-tabs-slot chart-tabs" role="tablist" aria-label="Chart view">
+    <button type="button" role="tab" class="chart-tab" id="tab-scatter" data-view="scatter" aria-controls="chart-panel" aria-selected="true" tabindex="0">Scatter</button>
+    <button type="button" role="tab" class="chart-tab" id="tab-bars" data-view="bars" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Bars</button>
+    <button type="button" role="tab" class="chart-tab" id="tab-butterfly" data-view="butterfly" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Butterfly</button>
+    <button type="button" role="tab" class="chart-tab" id="tab-map" data-view="map" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Map</button>
+  </div>
+  <p id="tab-hint" class="tab-hint" role="status"></p>
+
+  <div id="legend-row" class="legend-row">
+    <ul id="legend-chips" class="legend-chips" aria-label="Network families: select to show or hide"></ul>
+    <div id="dots-toggle" class="dots-toggle">
+      <span class="dots-caption" aria-hidden="true">Filtered-out dots</span>
+      <div class="segmented" role="group" aria-label="Filtered-out dots" title="Filters fade the games they exclude unless Hide is on." aria-description="Filters fade the games they exclude unless Hide is on.">
+        <button type="button" data-dots="fade" aria-pressed="true">Fade</button>
+        <button type="button" data-dots="hide" aria-pressed="false">Hide</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="chart-controls" class="chart-controls">
+    <div id="scatter-controls" class="scatter-controls">
+      <div class="axis-group">
+        <span class="axis-caption" aria-hidden="true">X axis</span>
+      <div id="axis-toggle" class="segmented" role="group" aria-label="X-axis measure">
+        <button type="button" data-axis="spread" aria-pressed="true" aria-label="Spread"><span class="axis-long">Spread</span><span class="axis-short">Spread</span></button>
+        <button type="button" data-axis="excitement" aria-pressed="false" aria-label="Excitement"><span class="axis-long">Excitement</span><span class="axis-short">Excitement</span></button>
+        <button type="button" data-axis="date" aria-pressed="false" aria-label="Date"><span class="axis-long">Date</span><span class="axis-short">Date</span></button>
+      </div>
+      </div>
+      <div class="axis-group">
+        <span class="axis-caption" aria-hidden="true">Y axis</span>
+        <div id="y-toggle" class="segmented" role="group" aria-label="Y-axis measure">
+          <button type="button" data-y="viewers" aria-pressed="true">Viewers</button>
+          <button type="button" data-y="excitement" aria-pressed="false" aria-label="Excitement" title="Excitement"><span class="axis-long">Excitement</span><span class="axis-short">Excite.</span></button>
+          <button type="button" data-y="points" aria-pressed="false" title="Total points">Points</button>
+          <button type="button" data-y="margin" aria-pressed="false" title="Winning margin">Margin</button>
+        </div>
+      </div>
+    </div>
+    <div id="bar-controls" class="bar-controls is-concealed">
+      <div id="group-by-toggle" class="segmented by-toggle" role="group" aria-label="Group bars">
+        <span class="by-sizer" aria-hidden="true"><span>by Announcer</span><span>by Network</span><span>by Team</span><span>by Conference</span></span>
+        <span class="by-buttons">
+          <button type="button" data-by="announcer" aria-pressed="true"><span class="by-prefix">by </span>Announcer</button>
+          <button type="button" data-by="network" aria-pressed="false"><span class="by-prefix">by </span>Network</button>
+          <button type="button" data-by="team" aria-pressed="false"><span class="by-prefix">by </span>Team</button>
+          <button type="button" data-by="conference" aria-pressed="false" aria-label="by Conference"><span class="by-prefix">by </span><span class="by-long">Conference</span><span class="by-short">Conf.</span></button>
+        </span>
+      </div>
+      <div id="bar-role-toggle" class="segmented" role="group" aria-label="Announcer role">
+        <button type="button" data-role="" aria-pressed="true">Both</button>
+        <button type="button" data-role="pbp" aria-pressed="false" aria-label="PBP, play-by-play"><span class="role-pill" data-role="pbp" aria-hidden="true">PBP</span></button>
+        <button type="button" data-role="analyst" aria-pressed="false" aria-label="Analyst"><span class="role-pill" data-role="analyst" aria-hidden="true">Analyst</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="chart-panel" role="tabpanel" aria-labelledby="tab-scatter">
+    <div id="chart" tabindex="-1"><div id="season-empty-note" class="season-empty-note" role="status" hidden><p class="season-empty-title"></p><p class="season-empty-hint">Widen the season range or reset Seasons.</p></div><button type="button" id="band-info" class="band-info" aria-label="Why do some games have no public rating?" aria-expanded="false" aria-controls="band-note" hidden><span class="band-info-text">No public rating</span><span class="band-info-glyph" aria-hidden="true">i</span></button><div id="band-note" class="band-note" hidden><div id="band-note-viewers"><p class="band-note-title">No public rating</p><p>We found no published viewer count for these games. The reason is shown for each game. The most common ones:</p><ul><li>The network is rarely rated, such as ESPN+, CBS Sports Network, or SEC Network.</li><li>The figure is not posted yet. This is for the newest games of the current season.</li><li>No figure found in our sources for some 2021–24 games.</li><li>No figure was published.</li></ul><p><a href="methodology.html#games-with-no-public-rating">How we count games</a></p></div><div id="band-note-excitement" hidden><p class="band-note-title">No excitement value</p><p>CFBD publishes no excitement index for these games, so they have no height on this chart. They are drawn here instead of being left out. Their viewer figures are unchanged.</p><p><a href="methodology.html#the-y-axis-viewers-excitement-points-or-margin">How the Y axis works</a></p></div><div id="band-note-score" hidden><p class="band-note-title">No final score</p><p>These games have no final score yet, so they have no height on this chart. They are drawn here instead of being left out. Their viewer figures are unchanged.</p><p><a href="methodology.html#the-y-axis-viewers-excitement-points-or-margin">How the Y axis works</a></p></div></div></div>
+    <section id="bars-panel" hidden>
+      <h2 id="bars-title" class="bars-title"></h2>
+      <div id="bars-chart-box" class="bars-chart-box">
+        <div id="bars-chart" role="img" aria-label=""></div>
+        <div id="bars-note" class="season-empty-note" role="status" hidden><p class="season-empty-title"></p><p class="season-empty-hint"></p></div>
+      </div>
+      <div id="bars-footer" class="bars-footer"><button type="button" id="bars-show-all" class="toggle" aria-expanded="false" aria-controls="bars-chart" hidden></button><p id="bars-rowcount" class="caption"></p></div>
+      <div id="bars-captions" class="bars-captions"></div>
+      <details id="bars-data"><summary>Counts as a list</summary><ol id="bars-counts" class="counts-list"></ol></details>
+    </section>
+    <section id="map-panel" hidden>
+      <div id="map-chart" role="img" aria-label="Map of game venues"></div>
+      <p id="map-note" class="map-overlay map-note" hidden></p>
+      <div id="map-empty-note" class="season-empty-note" role="status" hidden><p class="season-empty-title"></p><p class="season-empty-hint"></p></div>
+    </section>
+  </div>
+
+  <ul id="shape-legend" hidden></ul>
+
+  <p id="excitement-caption" class="caption" hidden>2025+ excitement uses CFBD's new win-probability model; see <a href="methodology.html#the-2025-excitement-break">methodology</a>.</p>
+
+  <p id="era-note" class="caption">Nielsen changed how it measures viewing in 2020, 2025, and 2026, so compare seasons with care; see <a href="methodology.html#measurement-eras">methodology</a>.</p>
+
+  <div id="load-error" class="error-banner" role="alert" hidden>
+    <p>Couldn't load the site data.</p>
+    <p>Check your connection and reload the page. If this keeps happening, the data file may have moved — try the site's homepage.</p>
+  </div>
+</main>
+
+<section id="matched-games">
+  <h2>Matched games</h2>
+
+  <div id="table-empty" class="empty-state">
+    <h3>Nothing selected</h3>
+    <p>Select an announcer, a school, or a game to list matching games.</p>
+    <p>Pick an announcer, a school, or a game from the filters above.</p>
+  </div>
+
+  <table id="games-table" class="games-table" hidden>
+    <thead>
+      <tr>
+        <th scope="col"><button type="button" data-sort="date" aria-sort="none">Date <span class="sort-glyph"></span></button></th>
+        <th scope="col">Matchup</th>
+        <th scope="col">Network</th>
+        <th scope="col">Crew</th>
+        <th scope="col"><button type="button" data-sort="viewers" aria-sort="none">Viewers <span class="sort-glyph"></span></button></th>
+        <th scope="col">Source</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<dialog id="detail-panel" aria-labelledby="panel-title">
+  <div class="panel-inner">
+    <button type="button" id="panel-close" aria-label="Close details">×</button>
+    <h2 id="panel-title"></h2>
+    <div id="panel-body"></div>
+  </div>
+</dialog>
+
+<footer id="site-footer" class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 6 · Viewership through Week 6</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p></footer>
+
+<script src="vendor/plotly-4.1.1.min.js" integrity="sha256-O24V1F27f8pb0glCkelh3cVHLNiHAJ5gCaVtq2aNch8=" crossorigin="anonymous"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
