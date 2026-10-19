@@ -167,6 +167,16 @@
                     </div>
                 </div>
                 <div class="grid">
+                    <div class="grid-box" data-modal-target="#modal-acra">
+                        <div class="grid-box-full">
+                            <div class="grid-box-top">
+                                <img src="assets/img/companies/acra_logo.png">
+                            </div>
+                            <div class="grid-box-bottom">
+                                <p>Acra Lending</p>
+                            </div>
+                        </div>
+                    </div>
                     <div class="grid-box" data-modal-target="#modal-sgcp">
                         <div class="grid-box-full">
                             <div class="grid-box-top">
@@ -359,6 +369,29 @@
     <!--Modals-->
     <div id="overlay"></div>
 
+    <div class="modal" id="modal-acra">
+        <div class="modal-header">
+            <div class="title">Acra Lending</div>
+            <button data-close-target class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="date">May 2026 &mdash; Present</div>
+            <div class="position">Senior Decision Scientist</div>
+            <ul class="details">
+                <li>Developed a loan-level pull-through model for the Wholesale and Correspondent pipeline supporting $500MM in monthly fundings, using credit, pipeline status, time-in-status, and rate-movement factors to estimate funding probability and timing, benchmark expected vs. actual fundings, and flag at-risk loans daily</li>
+                <li>Built a Python analytics platform measuring prepayment and credit performance (CPR/CRR/CDR, delinquency, loss) across a $14B servicing portfolio, up from $9B at the start of 2026, with cohort analysis by vintage, channel, occupancy, documentation, prepayment penalty, and deal, reconciled to dv01 and servicer remittance data</li>
+                <li>Built a scenario-based funding and inventory forecast for Capital Markets that converts loan-level pull-through probabilities into projected daily fundings and forecasts WAC progression under pipeline, new-submission, trade-size, and sell-lag assumptions</li>
+                <li>Corrected MSR prepayment reporting by reconciling servicing populations with Accounting and identifying $271MM of servicing transfers and MSR sales incorrectly captured as payoffs, removing the distortion from retained-portfolio prepayment speeds</li>
+                <li>Migrated loan-level analytical pipelines from SQL Server to Snowflake, building source-system crosswalks and loan-level parity tests to resolve field-definition, population, and data-quality differences with the data team</li>
+                <li>Built and automated the monthly operating-performance reporting suite for senior leadership, integrating production, pull-through, pricing, credit-box, risk-layer, delinquency, and prepayment analytics and reconciling loan-level fundings and submissions to FP&amp;A</li>
+                <li>Engineered an automated month-end analytics pipeline combining parallel T-SQL extracts, Python transformations, and chart-ready Excel outputs, supported by 2,200+ automated tests for calculation, reconciliation, and data-quality controls</li>
+            </ul>
+        </div>
+        <div class="modal-image">
+            <img src="assets/img/companies/acra_full.png">
+        </div>
+    </div>
+
     <div class="modal" id="modal-sgcp">
         <div class="modal-header">
             <div class="title">SG Capital Partners</div>
@@ -398,7 +431,7 @@
             <ul class="details">
                 <li>Developed competitive pricing analysis reports with Python web-scraping methods</li>
                 <li>Modernized and automated tasks by converting into scripts supported with version control</li>
-                <li>Assessed pipeline health and present visualizations with Power BI</li>
+                <li>Assessed pipeline health and presented visualizations with Power BI</li>
                 <li>Optimized data acquisition for internal reporting using T-SQL</li>
                 <li>Explored trends in mortgage market with multi-billion records of GSE data</li>         
             </ul>
