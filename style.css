@@ -651,10 +651,13 @@ iframe#graph {
   margin: auto;
 }
 
-.grid-box:hover {
-  background-color: #eee;
-  transition: .3s;
-  transform: scale(1.1);
+/* Only on real hover devices: iOS keeps :hover on the last-tapped tile, leaving it scaled */
+@media (any-hover: hover) {
+  .grid-box:hover {
+    background-color: #eee;
+    transition: .3s;
+    transform: scale(1.1);
+  }
 }
 
 .grid-box-top {
@@ -696,11 +699,15 @@ iframe#graph {
   text-align: center;
 }
 
+/* Centered with left/right/margin rather than left: 50% so the box never extends past the
+   right edge while closed; iOS Safari can widen the page to include it. */
 .modal {
   position: fixed;
   top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  transform: translateY(-50%) scale(0);
   transition: .5s;
   border: solid 1px black;
   border-radius: 20px;
@@ -713,7 +720,7 @@ iframe#graph {
 }
 
 .modal.active-modal {
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateY(-50%) scale(1);
 }
 
 .modal-header {
@@ -895,12 +902,31 @@ a.grid-box#blog {
 }
 
 @media screen and (max-width: 600px) {
+  /* Rows grow with their title instead of a fixed height, and stay within the screen width */
   .projects-item {
-    height: 150px;
+    height: auto;
+  }
+
+  .projects-item .thumbnail {
+    flex: 0 0 auto;
+    height: auto;
+    padding: 0 0.75em;
+  }
+
+  .projects-item img#cover {
+    width: 110px;
+    height: 110px;
+  }
+
+  .projects-item .description {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 0.75em 0 0;
   }
 
   .projects-item .title {
     font-size: 12pt;
+    overflow-wrap: anywhere;
   }
 
   .projects-item .date {
