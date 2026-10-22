@@ -10,6 +10,7 @@ import { FAMILY_ORDER, familyKey } from './palette.js';
 import { CFP_GAME_DEFS, NEW_YEARS_SIX } from './format.js';
 import { buildDateAxis } from './date-axis.js';
 import { EXCITEMENT_CAP, Y_MEASURES } from './caps.js';
+import { placeVenues } from './map-geo.js';
 
 /**
  * Normalizes a name for matching: Unicode NFKD decomposition, combining
@@ -36,6 +37,79 @@ export function slugify(s) {
   return normalizeName(s)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+/** Orders venues that share a name and city by their own data, never by array position. */
+function compareVenueIdentity(venues, i, j) {
+  const a = venues[i];
+  const b = venues[j];
+  // Code-unit order, so the result never depends on the browser's locale.
+  const text = (x, y) => ((x ?? '') < (y ?? '') ? -1 : (x ?? '') > (y ?? '') ? 1 : 0);
+  return (
+    text(a.state, b.state) ||
+    text(a.country, b.country) ||
+    (a.lat ?? 0) - (b.lat ?? 0) ||
+    (a.lon ?? 0) - (b.lon ?? 0) ||
+    i - j
+  );
+}
+
+/**
+ * Stable venue keys (Phase 11 D-05): the slug of name + city. Venues that repeat a name
+ * and city get -2/-3 suffixes in the order of their own state, country, latitude and
+ * longitude, so a saved link keeps its venue when other venues are added or removed or
+ * the lookup is reordered (only an exact duplicate of all of those falls back to lookup
+ * position). A venue with a unique name and city keeps the bare slug. Also a group key
+ * for each abroad marker label (Dublin) that resolves to every venue in the group.
+ * Indexes are never put in a URL.
+ * @param {Array<object>} venues lookups.venues
+ */
+function buildVenueKeys(venues) {
+  const bases = venues.map((v) => slugify(`${v.name} ${v.city ?? ''}`) || 'venue');
+  // Every natural base is reserved first, so a suffix (foo-2) never lands on another
+  // venue's own key ("Foo 2"); keys without a collision stay exactly the base.
+  const reserved = new Set(bases);
+  const taken = new Set();
+  const members = new Map();
+  bases.forEach((base, i) => members.set(base, [...(members.get(base) ?? []), i]));
+  const venueKeys = new Array(venues.length);
+  for (const [base, indexes] of members) {
+    indexes.sort((i, j) => compareVenueIdentity(venues, i, j));
+    indexes.forEach((i, rank) => {
+      let key = base;
+      if (rank > 0) {
+        let n = 2;
+        while (reserved.has(`${base}-${n}`) || taken.has(`${base}-${n}`)) n += 1;
+        key = `${base}-${n}`;
+      }
+      taken.add(key);
+      venueKeys[i] = key;
+    });
+  }
+  const placements = placeVenues(venues);
+  // One key per abroad label; it can match neither a venue key nor another label's key.
+  const groupByLabel = new Map();
+  const groupKeyOf = (label) => {
+    if (groupByLabel.has(label)) return groupByLabel.get(label);
+    const slug = slugify(label) || 'venue';
+    let key = taken.has(slug) ? `abroad-${slug}` : slug;
+    for (let n = 2; taken.has(key); n += 1) key = `${taken.has(slug) ? 'abroad-' : ''}${slug}-${n}`;
+    taken.add(key);
+    groupByLabel.set(label, key);
+    return key;
+  };
+  const venueGroupKeys = placements.map((pl) =>
+    !pl.abroad || pl.label == null ? null : groupKeyOf(pl.label),
+  );
+  const venueIndexesByKey = new Map();
+  venueKeys.forEach((key, i) => venueIndexesByKey.set(key, [i]));
+  venueGroupKeys.forEach((key, i) => {
+    if (key == null) return;
+    const hit = venueIndexesByKey.get(key);
+    if (hit) hit.push(i);
+    else venueIndexesByKey.set(key, [i]);
+  });
+  return { venueKeys, venueGroupKeys, venueIndexesByKey };
 }
 
 /**
@@ -76,6 +150,9 @@ export function gameKeyMatches(key, query) {
   if (key.includes(query)) return true;
   return key.replaceAll(' ', '').includes(query.replaceAll(' ', ''));
 }
+
+/** Tier code per booth tier name; 0 means untiered (Phase 10). */
+export const BOOTH_TIER_CODE = { a: 1, b: 2, other: 3 };
 
 /** Computes [min, max] over the non-null values of an array, or [null, null] if none. */
 function nonNullRange(values) {
@@ -136,6 +213,13 @@ export function prepareData(raw) {
   ) {
     throw new Error('site-data.json: venue fields are missing (contract v2.3.0)');
   }
+  if (
+    !Array.isArray(lookups.booths) ||
+    !Array.isArray(raw.telecasts.booth) ||
+    !Array.isArray(raw.telecasts_unrated.booth)
+  ) {
+    throw new Error('site-data.json: booth fields are missing (booth tiers need contract 2.6.0)');
+  }
   const nRated = raw.telecasts.season.length;
   const nUnrated = raw.telecasts_unrated.season.length;
   const n = nRated + nUnrated;
@@ -193,6 +277,19 @@ export function prepareData(raw) {
   // place the bands (04.17 D-06), whatever the view filters are.
   const { dateX, axis: dateAxis } = buildDateAxis(merged.season, merged.date, merged.kickoff, merged.game_type);
   const t = { ...merged, spread, dateX };
+
+  // Phase 10: per-game booth index and tier from the merged booth column (rated rows first,
+  // then unrated), so unrated lead games keep their tier. 0 none, 1 a, 2 b, 3 other.
+  const boothOf = new Int32Array(n).fill(-1);
+  const boothTier = new Uint8Array(n);
+  const boothIsConfLead = new Uint8Array(n);
+  for (let i = 0; i < n; i += 1) {
+    const b = merged.booth[i];
+    if (b == null || lookups.booths[b] == null) continue;
+    boothOf[i] = b;
+    boothTier[i] = BOOTH_TIER_CODE[lookups.booths[b].tier] ?? 0;
+    boothIsConfLead[i] = lookups.booths[b].lead_network != null ? 1 : 0;
+  }
 
   const familyOf = new Array(n);
   for (let i = 0; i < n; i += 1) {
@@ -325,6 +422,7 @@ export function prepareData(raw) {
     g.index = index;
   });
   const gameIndexBySlug = new Map(games.map((g) => [g.slug, g.index]));
+  const { venueKeys, venueGroupKeys, venueIndexesByKey } = buildVenueKeys(lookups.venues);
   const gameByRound = new Map();
   const gameByFranchise = new Map();
   const gameByRivalry = new Map();
@@ -358,6 +456,10 @@ export function prepareData(raw) {
     t,
     lookups,
     familyOf,
+    booths: lookups.booths,
+    boothOf,
+    boothTier,
+    boothIsConfLead,
     families,
     personIndexById,
     networkIndexById,
@@ -382,6 +484,9 @@ export function prepareData(raw) {
     fbsConferences,
     games,
     gameIndexBySlug,
+    venueKeys,
+    venueGroupKeys,
+    venueIndexesByKey,
     dotGames,
   };
 }

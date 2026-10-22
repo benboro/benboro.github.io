@@ -47,10 +47,11 @@ const SECTION_POPOVERS = [
   ['filter-school', 'pop-school'],
   ['filter-postseason', 'pop-postseason'],
   ['filter-game', 'pop-game'],
+  ['filter-booth', 'pop-booth'],
 ];
 
 /** Toolbar trigger names, in toolbar order -- also `#trigger-{name}`'s id suffix. */
-const TRIGGER_NAMES = ['announcers', 'seasons', 'networks', 'kickoff', 'role', 'conference', 'school', 'postseason', 'game'];
+const TRIGGER_NAMES = ['announcers', 'seasons', 'networks', 'kickoff', 'role', 'conference', 'school', 'postseason', 'game', 'booth'];
 
 /**
  * Per-group reset patches (A4), keyed by trigger name and applied through
@@ -67,7 +68,13 @@ const GROUP_RESETS = {
   school: { school: [], h2h: false },
   postseason: { postseason: 'all' },
   game: { game: null },
+  booth: { booth: [] },
+  venue: { venue: null },
 };
+
+/** Booth tier values in canonical order, and their trigger labels (D-12). */
+const BOOTH_ORDER = ['a', 'b', 'other'];
+const BOOTH_LABELS = { a: 'Lead (A)', b: 'No. 2 (B)', other: 'Other' };
 
 /** Bowls/Playoffs radio values, in the DOM order they appear in `#postseason-options`. */
 const POSTSEASON_ORDER = ['all', 'exclude', 'only'];
@@ -968,6 +975,7 @@ export function initFilters({ data, getState, setState }) {
     schoolMatch: document.getElementById('school-match'),
     schoolList: document.getElementById('school-list'),
     postseasonOptions: document.getElementById('postseason-options'),
+    boothList: document.getElementById('booth-list'),
     gameSearch: document.getElementById('game-search'),
     gameOptions: document.getElementById('game-options'),
     gameEmpty: document.getElementById('game-empty'),
@@ -1024,6 +1032,11 @@ export function initFilters({ data, getState, setState }) {
 
   els.roleSection.addEventListener('change', (ev) => handleRoleChange(setState, ev));
 
+  els.boothList.addEventListener('change', () => {
+    const picked = new Set([...els.boothList.querySelectorAll('input[name="booth"]:checked')].map((cb) => cb.value));
+    setState({ booth: BOOTH_ORDER.filter((tier) => picked.has(tier)) });
+  });
+
   els.conferenceList.addEventListener('change', () => handleConferenceChange(data, setState));
   els.conferenceSearch.addEventListener('input', () => {
     filterChecklist(els.conferenceList, els.conferenceSearch.value, (cb) => [normalizeName(cb.value)]);
@@ -1046,6 +1059,13 @@ export function initFilters({ data, getState, setState }) {
     const btn = ev.target.closest('.chip-remove');
     if (!btn || !btn.dataset.slug) return;
     setState({ school: getState().school.filter((slug) => slug !== btn.dataset.slug) });
+  });
+
+  // Phase 11 D-05: the chip lives in the table heading row; removal clears only the venue.
+  document.getElementById('venue-chips')?.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.chip-remove');
+    if (!btn || !btn.dataset.venue) return;
+    setState({ venue: null });
   });
 
   els.postseasonOptions.addEventListener('click', (ev) => {
@@ -1260,6 +1280,14 @@ function renderRole(state, view) {
   }
 }
 
+/** Syncs the Booth checkboxes and counts; all three rows always show (D-12). */
+function renderBooth(state, view) {
+  for (const cb of els.boothList.querySelectorAll('input[name="booth"]')) {
+    cb.checked = state.booth.includes(cb.value);
+    setCount(cb.closest('.check-item'), view.facets.booth[cb.value] ?? 0);
+  }
+}
+
 /** Syncs the Conference checklist's checked state and counts (D-10, D-11). */
 function renderConferences(state, view) {
   for (const [name, cb] of conferenceCheckboxes) {
@@ -1390,6 +1418,12 @@ function triggerInfo(name, data, state, view) {
     const label = state.postseason === 'exclude' ? 'Bowls/Playoffs: Exclude' : 'Bowls/Playoffs: Only';
     return { label, active: true };
   }
+  if (name === 'booth') {
+    if (state.booth.length === 0) return { label: 'Booth', active: false };
+    const label =
+      state.booth.length === 1 ? `Booth: ${BOOTH_LABELS[state.booth[0]]}` : `Booth · ${state.booth.length}`;
+    return { label, active: true };
+  }
   if (name === 'game') {
     const idx = state.game != null ? data.gameIndexBySlug.get(state.game) : undefined;
     if (idx === undefined) return { label: 'Game', active: false };
@@ -1425,6 +1459,7 @@ function activeFilterCount(data, state, view) {
   if (state.conferences.length > 0) n += 1;
   if (state.school.length > 0) n += 1;
   if (state.postseason !== 'all') n += 1;
+  if (state.booth.length > 0) n += 1;
   if (triggerInfo('game', data, state, view).active) n += 1;
   n += state.people.length;
   return n;
@@ -1469,6 +1504,7 @@ export function renderFilters({ data, state, view }) {
   renderConferences(state, view);
   renderSchool(data, state, view);
   renderPostseason(state, view);
+  renderBooth(state, view);
   renderGame(data, state, view);
   renderOnlyButtons(data, state, view);
   renderTriggers(data, state, view);

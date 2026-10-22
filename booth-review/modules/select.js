@@ -13,6 +13,7 @@
 
 import { COMPARE_SYMBOLS, SHARED_SYMBOL } from './palette.js';
 import { gameTitlePhrase } from './format.js';
+import { BOOTH_TIER_CODE } from './data.js';
 
 /** Maximum number of people that can be selected in compare mode (D-07). */
 export const MAX_COMPARE = 4;
@@ -45,12 +46,17 @@ export function defaultState(_data) {
     conferences: [],
     school: [],
     postseason: 'all',
+    booth: [],
     game: null,
+    // Phase 11 D-05: one venue (or abroad group) key filtering the Matched games table only.
+    venue: null,
     axis: 'spread',
     y: 'viewers',
     view: 'scatter',
     by: null,
     dots: 'fade',
+    // Phase 11 D-09: the Network colors switch on the Map ('on' | 'off').
+    colors: 'on',
     h2h: false,
   };
 }
@@ -153,6 +159,17 @@ function failsPostseason(data, state, i) {
 }
 
 /**
+ * True when the Booth pick excludes dot `i` (Phase 10 D-12): no pick never excludes; else the
+ * game's tier must be picked, so every untiered game fails.
+ */
+function failsBooth(data, state, i) {
+  if (state.booth.length === 0) return false;
+  const tier = data.boothTier[i];
+  if (tier === 0) return true;
+  return !state.booth.some((name) => BOOTH_TIER_CODE[name] === tier);
+}
+
+/**
  * True when the Game pick excludes dot `i` (04.9 D-03, D-11): no pick, or an
  * unknown slug (T-04.9-16), never excludes; else the dot must belong to the game.
  */
@@ -171,7 +188,8 @@ function failsFadeable(data, state, i) {
     failsConferences(data, state, i) ||
     failsSchool(data, state, i) ||
     failsPostseason(data, state, i) ||
-    failsGame(data, state, i)
+    failsGame(data, state, i) ||
+    failsBooth(data, state, i)
   );
 }
 
@@ -216,6 +234,7 @@ const BIT_SCHOOL = 16;
 const BIT_POST = 32;
 const BIT_PERSON = 64;
 const BIT_GAME = 128;
+const BIT_BOOTH = 256;
 
 /**
  * Faceted option counts (D-08..D-12): for every filter option, the number
@@ -226,7 +245,8 @@ const BIT_GAME = 128;
  * @param {object} data - a `prepareData` result.
  * @param {object} state - shaped like `defaultState(data)`.
  * @returns {object} `{ total, seasons, networks, slots, conferences,
- *   schools, postseason, games, role, people }` (`games`: one count per
+ *   schools, postseason, games, booth, role, people }` (`booth`: `{ a, b, other }` tiered-game
+ *   counts; `games`: one count per
  *   `data.games` entry, a dot counting toward every game it belongs to).
  */
 export function computeFacets(data, state) {
@@ -241,6 +261,7 @@ export function computeFacets(data, state) {
   const schools = new Int32Array(data.lookups.teams.length);
   const postseason = { all: 0, exclude: 0, only: 0 };
   const games = new Int32Array(data.games.length);
+  const booth = { a: 0, b: 0, other: 0 };
   const role = { pbp: 0, analyst: 0 };
   const people = new Int32Array(data.lookups.people.length);
   let total = 0;
@@ -254,6 +275,7 @@ export function computeFacets(data, state) {
     if (failsSchool(data, state, i)) mask |= BIT_SCHOOL;
     if (failsPostseason(data, state, i)) mask |= BIT_POST;
     if (failsGame(data, state, i)) mask |= BIT_GAME;
+    if (failsBooth(data, state, i)) mask |= BIT_BOOTH;
     if (hasPeople && !personMatches(data, state, personIndexes, i, state.role)) mask |= BIT_PERSON;
 
     if (mask === 0) total += 1;
@@ -276,6 +298,9 @@ export function computeFacets(data, state) {
       if (t.game_type[i] === 'regular') postseason.exclude += 1;
       else postseason.only += 1;
     }
+    if ((mask & ~BIT_BOOTH) === 0 && data.boothTier[i] !== 0) {
+      booth[['', 'a', 'b', 'other'][data.boothTier[i]]] += 1;
+    }
     if ((mask & ~BIT_GAME) === 0) {
       for (const g of data.dotGames[i]) games[g] += 1;
     }
@@ -296,7 +321,7 @@ export function computeFacets(data, state) {
     }
   }
 
-  return { total, seasons, networks, slots, conferences, schools, postseason, games, role, people };
+  return { total, seasons, networks, slots, conferences, schools, postseason, games, booth, role, people };
 }
 
 /**
@@ -483,11 +508,31 @@ export function computeView(data, state) {
   } else {
     matched = [];
   }
+  // Phase 11 D-05: a clicked venue narrows the table only. Everything above (hasSelection,
+  // highlighted, the summary) is computed without it, so summarySet keeps the base rows.
+  const matchedBase = matched;
+  const venueIndexes =
+    state.venue != null ? data.venueIndexesByKey?.get(state.venue) : undefined;
+  const venueSelected = venueIndexes != null;
+  if (venueSelected) {
+    const venueSet = new Set(venueIndexes);
+    const place = data.t.place;
+    const pool = hasSelection ? matched : null;
+    matched = [];
+    if (pool) {
+      for (const i of pool) if (venueSet.has(place[i])) matched.push(i);
+    } else {
+      for (let i = 0; i < n; i += 1) {
+        if (passesFilters[i] && venueSet.has(place[i])) matched.push(i);
+      }
+    }
+  }
 
   const symbols = new Map();
   for (const i of highlighted) {
     if (!state.compare) {
-      symbols.set(i, 'circle');
+      // Phase 10 D-09: one person selected shows their lead-booth (A) games as stars.
+      symbols.set(i, data.boothTier[i] === 1 ? 'star' : 'circle');
       continue;
     }
     const onGame = peopleOnGame.get(i);
@@ -510,7 +555,8 @@ export function computeView(data, state) {
     state.conferences.length > 0 ||
     state.school.length > 0 ||
     hasGameSelection ||
-    state.postseason !== 'all';
+    state.postseason !== 'all' ||
+    state.booth.length > 0;
   const otherFilterActive = state.networks != null || nonNetworkFilter;
   const filterActive = state.seasons != null || otherFilterActive;
   // 04.16 D-04: the old rule-based size flag is gone. SITE-50 (D-03) keeps a
@@ -526,7 +572,7 @@ export function computeView(data, state) {
   const enlargeDots =
     drawnFaded > 0 &&
     (!networksOnly || (familiesOn >= 1 && familiesOn <= NETWORKS_ENLARGE_MAX_FAMILIES));
-  let summarySet = matched;
+  let summarySet = matchedBase;
   if (!hasSelection) {
     summarySet = [];
     for (let i = 0; i < n; i += 1) if (passesFilters[i]) summarySet.push(i);
@@ -541,7 +587,12 @@ export function computeView(data, state) {
     filterActive,
   );
 
+  // True when compare mode gives each selected person a shape; the lead star yields to those
+  // shapes, D-09.
+  const personShapes = state.compare && state.people.length > 0;
+
   return {
+    personShapes,
     visible,
     passesFilters,
     visibleCount,
@@ -555,6 +606,7 @@ export function computeView(data, state) {
     totalCount: n,
     highlighted,
     matched,
+    venueSelected,
     peopleOnGame,
     altGames,
     symbols,

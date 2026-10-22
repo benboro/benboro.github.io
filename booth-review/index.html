@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="An interactive scatter of college football games and their public viewer counts by network, announcer, and matchup quality.">
-<meta name="site-data-version" content="65d8995fa1">
+<meta name="site-data-version" content="ca460ff8d0">
 <meta name="booth-review-sports" content="cfb">
 <title>booth-review · college football broadcast crews and viewership</title>
 <link rel="stylesheet" href="style.css">
@@ -31,6 +31,7 @@
   <button type="button" class="filter-trigger desktop-only" id="trigger-school" popovertarget="pop-school" aria-haspopup="dialog" aria-expanded="false">School</button>
   <button type="button" class="filter-trigger desktop-only" id="trigger-postseason" popovertarget="pop-postseason" aria-haspopup="dialog" aria-expanded="false">Bowls/Playoffs</button>
   <button type="button" class="filter-trigger desktop-only" id="trigger-game" popovertarget="pop-game" aria-haspopup="dialog" aria-expanded="false">Game</button>
+  <button type="button" class="filter-trigger desktop-only" id="trigger-booth" popovertarget="pop-booth" aria-haspopup="dialog" aria-expanded="false">Booth</button>
 </nav>
 <script src="toolbar-fit.js"></script>
 
@@ -180,6 +181,22 @@
   </section>
 </div>
 
+<div id="pop-booth" class="filter-popover" popover="auto" role="dialog" aria-label="Booth">
+  <section id="filter-booth">
+    <div class="section-head">
+      <h3>Booth</h3>
+      <button type="button" class="group-reset" data-reset="booth" aria-label="Reset booth filter" aria-disabled="true">Reset</button>
+    </div>
+    <p class="helper">Network families with a published booth order only. Games without one are faded or hidden.</p>
+    <fieldset id="booth-list">
+      <legend class="visually-hidden">Booth, multi-select</legend>
+      <div class="check-item"><label class="check-row"><input type="checkbox" name="booth" value="a"> <span class="option-name">Lead (A)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+      <div class="check-item"><label class="check-row"><input type="checkbox" name="booth" value="b"> <span class="option-name">No. 2 (B)</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+      <div class="check-item"><label class="check-row"><input type="checkbox" name="booth" value="other"> <span class="option-name">Other</span><span class="option-count" aria-hidden="true"></span><span class="visually-hidden option-count-sr"></span></label></div>
+    </fieldset>
+  </section>
+</div>
+
 <div id="filters-sheet" class="filters-sheet" popover="auto" role="dialog" aria-labelledby="filters-sheet-title">
   <div class="sheet-header">
     <h2 id="filters-sheet-title">Filters</h2>
@@ -197,6 +214,7 @@
     <button type="button" role="tab" class="chart-tab" id="tab-bars" data-view="bars" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Bars</button>
     <button type="button" role="tab" class="chart-tab" id="tab-butterfly" data-view="butterfly" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Butterfly</button>
     <button type="button" role="tab" class="chart-tab" id="tab-map" data-view="map" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Map</button>
+    <button type="button" role="tab" class="chart-tab" id="tab-crews" data-view="crews" aria-controls="chart-panel" aria-selected="false" tabindex="-1">Crews</button>
   </div>
   <p id="tab-hint" class="tab-hint" role="status"></p>
 
@@ -207,6 +225,13 @@
       <div class="segmented" role="group" aria-label="Filtered-out dots" title="Filters fade the games they exclude unless Hide is on." aria-description="Filters fade the games they exclude unless Hide is on.">
         <button type="button" data-dots="fade" aria-pressed="true">Fade</button>
         <button type="button" data-dots="hide" aria-pressed="false">Hide</button>
+      </div>
+    </div>
+    <div id="colors-toggle" class="dots-toggle colors-toggle is-concealed">
+      <span class="dots-caption" aria-hidden="true">Network colors</span>
+      <div class="segmented" role="group" aria-label="Network colors on the map" title="Paints each area in the color of the network with the most games nearby. Fainter color means fewer games or a split between networks." aria-description="Paints each area in the color of the network with the most games nearby. Fainter color means fewer games or a split between networks.">
+        <button type="button" data-colors="on" aria-pressed="true">On</button>
+        <button type="button" data-colors="off" aria-pressed="false">Off</button>
       </div>
     </div>
   </div>
@@ -261,12 +286,16 @@
       <div id="bars-captions" class="bars-captions"></div>
       <details id="bars-data"><summary>Counts as a list</summary><ol id="bars-counts" class="counts-list"></ol></details>
     </section>
+    <section id="crews-panel" hidden></section>
     <section id="map-panel" hidden>
       <div id="map-chart" role="img" aria-label="Map of game venues"></div>
       <p id="map-note" class="map-overlay map-note" hidden></p>
+      <div id="map-key" class="map-overlay map-key" hidden></div>
       <div id="map-empty-note" class="season-empty-note" role="status" hidden><p class="season-empty-title"></p><p class="season-empty-hint"></p></div>
     </section>
   </div>
+
+  <p id="lead-key" class="lead-key is-off" role="note" aria-label="Called by the lead booth for its network family" title="Called by the lead booth for its network family"><span aria-hidden="true">&#9733; Lead booth</span></p>
 
   <ul id="shape-legend" hidden></ul>
 
@@ -281,13 +310,16 @@
 </main>
 
 <section id="matched-games">
-  <h2>Matched games</h2>
+  <div class="matched-heading-row"><h2 id="matched-games-title" tabindex="-1">Matched games</h2><ul id="venue-chips" class="chips venue-chips" aria-label="Venue filter"></ul></div>
+  <p id="venue-status" class="visually-hidden" role="status" aria-live="polite"></p>
 
   <div id="table-empty" class="empty-state">
     <h3>Nothing selected</h3>
     <p>Select an announcer, a school, or a game to list matching games.</p>
     <p>Pick an announcer, a school, or a game from the filters above.</p>
   </div>
+
+  <p id="venue-nomatch" hidden>No games match these filters.</p>
 
   <table id="games-table" class="games-table" hidden>
     <thead>
@@ -312,7 +344,7 @@
   </div>
 </dialog>
 
-<footer id="site-footer" class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 7 · Viewership through Week 6</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p></footer>
+<footer id="site-footer" class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 8 · Viewership through Week 7</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p></footer>
 
 <script src="vendor/plotly-4.1.1.min.js" integrity="sha256-O24V1F27f8pb0glCkelh3cVHLNiHAJ5gCaVtq2aNch8=" crossorigin="anonymous"></script>
 <script type="module" src="app.js"></script>

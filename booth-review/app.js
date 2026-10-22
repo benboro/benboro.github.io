@@ -32,7 +32,8 @@ import { initChartTabs, renderChartTabs, staleCopy } from './modules/chart-tabs.
 import { chartContext } from './modules/bars.js';
 import { initBarsPanel, renderBarsPanel, lastBarsModel, resetBarsTap } from './modules/bars-panel.js';
 import { buildMapModel } from './modules/map-model.js';
-import { initMapPanel, renderMapPanel, resetMapTap, mapRenderCount } from './modules/map-panel.js';
+import { buildCrewsModel, renderCrewsPanel } from './modules/crews.js';
+import { initMapPanel, renderMapPanel, resetMapTap, mapRenderCount, mapSplatCount } from './modules/map-panel.js';
 import { initBandInfo, positionBandInfo, closeBandNote, setBandInfoMode } from './modules/band-info.js';
 import { showTooltip, hideTooltip } from './modules/tooltip.js';
 import { selectedPersonIndexes } from './modules/format.js';
@@ -52,10 +53,14 @@ const loadErrorEl = document.getElementById('load-error');
 const axisToggleEl = document.getElementById('axis-toggle');
 const yToggleEl = document.getElementById('y-toggle');
 const excitementCaptionEl = document.getElementById('excitement-caption');
+const legendRowEl = document.getElementById('legend-row');
+const chartControlsEl = document.getElementById('chart-controls');
+let crewsHasNewModelSeason = false;
 const panelBodyEl = document.getElementById('panel-body');
 const panelTitleEl = document.getElementById('panel-title');
 const barsPanelEl = document.getElementById('bars-panel');
 const mapPanelEl = document.getElementById('map-panel');
+const crewsPanelEl = document.getElementById('crews-panel');
 const mapChartEl = document.getElementById('map-chart');
 const barsNoteEl = document.getElementById('bars-note');
 const eraNoteEl = document.getElementById('era-note');
@@ -149,7 +154,7 @@ let revision = 0;
 
 /** Whether the scatter's Plotly event handlers are bound (needs one rendered scatter first). */
 let scatterBound = false;
-/** Which panel the last render showed: 'scatter' | 'bars' | 'map'. */
+/** Which panel the last render showed: 'scatter' | 'bars' | 'map' | 'crews'. */
 let lastPanel = null;
 /** The Map model of the last Map render, or null before one ran. */
 let lastMapModel = null;
@@ -252,6 +257,7 @@ function render() {
     chartEl.hidden = false;
     if (barsPanelEl) barsPanelEl.hidden = true;
     if (mapPanelEl) mapPanelEl.hidden = true;
+    if (crewsPanelEl) crewsPanelEl.hidden = true;
     renderChart(chartEl, buildFigure(data, view, state, currentEnv()));
     setBandInfoMode(bandInfoEls(), state.y);
     showBandInfo();
@@ -263,20 +269,39 @@ function render() {
       scatterBound = true;
     }
     lastPanel = 'scatter';
+  } else if (state.view === 'crews') {
+    chartEl.hidden = true;
+    if (barsPanelEl) barsPanelEl.hidden = true;
+    if (mapPanelEl) mapPanelEl.hidden = true;
+    hideBandInfo();
+    if (crewsPanelEl) {
+      crewsPanelEl.hidden = false;
+      const crewsModel = buildCrewsModel(data, view);
+      renderCrewsPanel(crewsPanelEl, crewsModel);
+      crewsHasNewModelSeason = crewsModel.groups.some((g) => g.season >= 2025);
+    }
+    lastPanel = 'crews';
   } else if (state.view === 'map') {
     chartEl.hidden = true;
     if (barsPanelEl) barsPanelEl.hidden = true;
+    if (crewsPanelEl) crewsPanelEl.hidden = true;
     if (mapPanelEl) mapPanelEl.hidden = false;
     hideBandInfo();
     resetMapTap();
     lastMapModel = buildMapModel(data, view, state);
-    renderMapPanel({ data, model: lastMapModel, env: currentEnv(), resize: lastPanel !== 'map' });
+        renderMapPanel({
+      data,
+      model: lastMapModel,
+      env: { ...currentEnv(), splat: state.colors !== 'off' },
+      resize: lastPanel !== 'map',
+    });
     lastPanel = 'map';
   } else {
     chartEl.hidden = true;
     hideBandInfo();
     if (barsPanelEl) barsPanelEl.hidden = false;
     if (mapPanelEl) mapPanelEl.hidden = true;
+    if (crewsPanelEl) crewsPanelEl.hidden = true;
     const applies = state.view === 'bars' ? ctx.barsEnabled : ctx.butterflyEnabled;
     renderBarsShell(applies);
     if (applies) {
@@ -301,9 +326,16 @@ function render() {
     }
   }
   if (excitementCaptionEl) {
+    // Crews shows excitement medians, so the 2025+ model note applies when any shown group is 2025+.
     excitementCaptionEl.hidden =
-      (state.axis !== 'excitement' && state.y !== 'excitement') || state.view !== 'scatter';
+      state.view === 'crews'
+        ? !crewsHasNewModelSeason
+        : (state.axis !== 'excitement' && state.y !== 'excitement') || state.view !== 'scatter';
   }
+  // The network-color chips mean nothing on the Crews table; the Networks filter still applies.
+  if (legendRowEl) legendRowEl.hidden = state.view === 'crews';
+  // Its axis and bar toggles are concealed on Crews; drop the reserved row so the hint sits close.
+  if (chartControlsEl) chartControlsEl.hidden = state.view === 'crews';
   if (eraNoteEl) eraNoteEl.hidden = state.view !== 'scatter';
 
   history.replaceState(null, '', location.pathname + encodeState(state, data));
@@ -319,6 +351,8 @@ function render() {
   for (const renderer of renderers) {
     renderer({ data, state, view, setState });
   }
+  const leadKeyEl = document.getElementById('lead-key');
+  if (leadKeyEl) leadKeyEl.hidden = state.view !== 'scatter';
   if (state.view === 'map') renderMapShapeLegend(shapeLegendEl, lastMapModel);
   else if (state.view !== 'scatter' && shapeLegendEl) shapeLegendEl.hidden = true;
 }
@@ -449,6 +483,8 @@ async function startCfb(search = location.search) {
       getNetworks: () => structuredClone(state.networks),
       switchEl: document.getElementById('dots-toggle'),
       onDots: (dots) => setState({ dots }),
+      colorsEl: document.getElementById('colors-toggle'),
+      onColors: (colors) => setState({ colors }),
     });
     renderers.push(renderLegend);
 
@@ -457,7 +493,7 @@ async function startCfb(search = location.search) {
     initChartTabs({ data, getState: () => state, setState });
     renderers.push(renderChartTabs);
 
-    initMapPanel();
+    initMapPanel({ setState, getState: () => state, getMatchedCount: () => lastView.matched.length });
 
     initBarsPanel({ data, getState: () => state, setState, rerender: render });
 
@@ -555,6 +591,9 @@ async function startCfb(search = location.search) {
       get mapRenders() {
         return mapRenderCount();
       },
+      get mapSplatRenders() {
+        return mapSplatCount();
+      },
       getMapModel: () => {
         const m = lastMapModel;
         if (!m) return null;
@@ -563,8 +602,8 @@ async function startCfb(search = location.search) {
           subjects: m.subjects.map(({ kind, key, label, symbol }) => ({ kind, key, label, symbol })),
           shapesCapped: m.shapesCapped,
           hasShared: m.hasShared,
-          dots: structuredClone(m.dots),
-          faded: structuredClone(m.faded),
+          venueDots: structuredClone(m.venueDots),
+          venueFaded: structuredClone(m.venueFaded),
           legs: m.legs.map((leg) => ({
             subject: leg.subject,
             season: leg.season,
