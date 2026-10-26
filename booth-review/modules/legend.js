@@ -1,6 +1,6 @@
 /**
  * Custom HTML chip legend (D-04, D-16, SITE-20, SITE-26): a horizontal row
- * of clickable family-colored pills above the chart, replacing Plotly's
+ * of clickable outlined chips (family dot plus label) above the chart, replacing Plotly's
  * built-in legend now that `chart.js` sets `showlegend: false` on every
  * trace. Clicking (or Enter/Space on) a chip toggles that family in the
  * Networks filter through the same `toggleFamilyNetworks` helper the
@@ -19,13 +19,7 @@
  */
 
 import { familyToggledOff, familyIsSole } from './select.js';
-import {
-  FAMILY_COLORS,
-  FAMILY_LABELS,
-  MAP_FAMILY_COLORS,
-  PILL_TEXT_COLOR,
-  readableTextOn,
-} from './palette.js';
+import { FAMILY_COLORS, FAMILY_LABELS, MAP_FAMILY_COLORS } from './palette.js';
 import { currentTheme } from './pill.js';
 
 /** D-07: two single clicks (or taps) on one pill within this many ms, by input time,
@@ -88,8 +82,7 @@ export function createOnlyDetector({ onToggle, onOnly, snapshot }) {
  * @param {{listEl: HTMLElement, onToggle: (family: string) => void,
  *   onOnly: (family: string, before: string[]|null) => void,
  *   getNetworks: () => string[]|null,
- *   switchEl?: HTMLElement|null, onDots?: (value: string) => void,
- *   colorsEl?: HTMLElement|null, onColors?: (value: string) => void}} args
+ *   switchEl?: HTMLElement|null, onDots?: (value: string) => void}} args
  */
 export function initLegend({
   listEl,
@@ -98,8 +91,6 @@ export function initLegend({
   getNetworks,
   switchEl,
   onDots,
-  colorsEl,
-  onColors,
 }) {
   const detector = createOnlyDetector({ onToggle, onOnly, snapshot: getNetworks });
   if (switchEl) {
@@ -108,14 +99,6 @@ export function initLegend({
       if (!button) return;
       const value = button.dataset.dots;
       if (value === 'fade' || value === 'hide') onDots(value);
-    });
-  }
-  if (colorsEl) {
-    colorsEl.addEventListener('click', (ev) => {
-      const button = ev.target.closest('button[data-colors]');
-      if (!button) return;
-      const value = button.dataset.colors;
-      if (value === 'on' || value === 'off') onColors(value);
     });
   }
   listEl.addEventListener('click', (ev) => {
@@ -127,6 +110,36 @@ export function initLegend({
     }
     detector.click(ev, button.dataset.family);
   });
+}
+
+/**
+ * One legend chip, the shared look for every chart legend (CFB, NFL and MLB; 13-12, U6): an
+ * outlined chip with an 8px colour dot beside the label. The chip itself is never filled, so
+ * its text is always --ink (or --muted when off) on --bg, whatever the series colour. CSS draws
+ * the on/off state from `aria-pressed` (the off dot fades to 32%).
+ * @param {{label: string, color: string, pressed: boolean, hint?: string, data?: Object<string, string>}} opts
+ *   `data` becomes the button's data-* attributes (e.g. `{ family: 'fox' }`).
+ * @returns {HTMLButtonElement}
+ */
+export function makeLegendChip({ label, color, pressed, hint, data = {} }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'legend-chip';
+  for (const [k, v] of Object.entries(data)) button.dataset[k] = v;
+  const dot = document.createElement('span');
+  dot.className = 'legend-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.backgroundColor = color;
+  const text = document.createElement('span');
+  text.className = 'legend-label';
+  text.textContent = label;
+  button.append(dot, text);
+  button.setAttribute('aria-pressed', String(pressed));
+  if (hint) {
+    button.title = hint;
+    button.setAttribute('aria-description', hint);
+  }
+  return button;
 }
 
 /**
@@ -147,43 +160,22 @@ export function renderLegend({ data, state, view }) {
   const palette = state.view === 'map' ? MAP_FAMILY_COLORS : FAMILY_COLORS;
   const items = data.families.map((family) => {
     const li = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'legend-chip pill';
-    button.dataset.family = family;
-    button.textContent = FAMILY_LABELS[family];
-    const pressed = !familyToggledOff(data, state, family);
-    button.setAttribute('aria-pressed', String(pressed));
+    // Outlined chip (13-12): no logos, since a chip stands for several channels.
     const hint = familyIsSole(data, view, family, state.networks)
       ? 'Double-click to show all networks'
       : `Double-click to show only ${FAMILY_LABELS[family]}`;
-    button.title = hint;
-    button.setAttribute('aria-description', hint);
+    const button = makeLegendChip({
+      label: FAMILY_LABELS[family],
+      color: palette[theme][family],
+      pressed: !familyToggledOff(data, state, family),
+      hint,
+      data: { family },
+    });
     const counts = view?.facets?.networks;
     const offered = !counts
       || (data.networksByFamily.get(family) ?? []).reduce((sum, idx) => sum + (counts[idx] ?? 0), 0) > 0;
     button.dataset.offered = String(offered);
-    if (!offered) {
-      // Greyed by CSS (`[data-offered="false"]`): no inline fill or text color
-      // so the stylesheet applies; the border keeps the family color.
-      button.style.backgroundColor = '';
-      button.style.color = '';
-      button.style.borderColor = palette[theme][family];
-    } else if (pressed) {
-      button.style.backgroundColor = palette[theme][family];
-      button.style.color =
-        state.view === 'map' && family === 'conference'
-          ? (readableTextOn(palette[theme][family]) ?? PILL_TEXT_COLOR[family])
-          : PILL_TEXT_COLOR[family];
-      button.style.borderColor = '';
-    } else {
-      // Toggled off: clear the inline fill so CSS's own
-      // `.legend-chip[aria-pressed="false"]` rule (transparent background,
-      // `--text` color) applies; only the border keeps the family color.
-      button.style.backgroundColor = '';
-      button.style.color = '';
-      button.style.borderColor = palette[theme][family];
-    }
+    // Offered, pressed and dashed states are drawn by CSS from data-offered and aria-pressed.
     li.appendChild(button);
     return li;
   });
@@ -195,13 +187,5 @@ export function renderLegend({ data, state, view }) {
       button.setAttribute('aria-pressed', String(button.dataset.dots === mode));
     }
     toggleEl.classList.toggle('is-concealed', state.view !== 'scatter');
-  }
-  const colorsEl = document.getElementById('colors-toggle');
-  if (colorsEl) {
-    const mode = state.colors === 'off' ? 'off' : 'on';
-    for (const button of colorsEl.querySelectorAll('button[data-colors]')) {
-      button.setAttribute('aria-pressed', String(button.dataset.colors === mode));
-    }
-    colorsEl.classList.toggle('is-concealed', state.view !== 'map');
   }
 }

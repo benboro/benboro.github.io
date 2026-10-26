@@ -20,20 +20,22 @@
  */
 
 import { prepareData } from './modules/data.js';
-import { defaultState, computeView, toggleFamilyNetworks, familyOnlyPatch, axisPatch, yPatch } from './modules/select.js';
+import { currentTheme, onThemeChange } from './modules/theme.js';
+import { defaultState, computeView, toggleFamilyNetworks, familyOnlyPatch, axisPatch, yPatch, describePickChange } from './modules/select.js';
 import { encodeState, decodeState } from './modules/url-state.js';
-import { buildFigure, renderChart, bindChartEvents, TOOLTIP_MODE } from './modules/chart.js';
+import { buildFigure, renderChart, bindChartEvents, scatterAtHome, resetScatterZoom, TOOLTIP_MODE } from './modules/chart.js';
 import { initTopbar, renderTopbar, renderMapShapeLegend } from './modules/topbar.js';
 import { initFilters, renderFilters } from './modules/filters.js';
 import { initLegend, renderLegend } from './modules/legend.js';
-import { renderPanel, openPanel, closePanel, initPanel } from './modules/panel.js';
+import { renderPanel, openPanel, openScheduledPanel, closePanel, initPanel } from './modules/panel.js';
 import { renderTable } from './modules/table.js';
 import { initChartTabs, renderChartTabs, staleCopy } from './modules/chart-tabs.js';
 import { chartContext } from './modules/bars.js';
 import { initBarsPanel, renderBarsPanel, lastBarsModel, resetBarsTap } from './modules/bars-panel.js';
 import { buildMapModel } from './modules/map-model.js';
-import { buildCrewsModel, renderCrewsPanel } from './modules/crews.js';
-import { initMapPanel, renderMapPanel, resetMapTap, mapRenderCount, mapSplatCount } from './modules/map-panel.js';
+import { renderCrewsPanel, perSeasonApplies } from './modules/crews.js';
+import { buildCrewRows, modelBreakSeason } from './modules/crew-groups.js';
+import { initMapPanel, renderMapPanel, resetMapTap, mapRenderCount, mapSplatCount, onMapViewChange, mapAtHome, resetMapZoom } from './modules/map-panel.js';
 import { initBandInfo, positionBandInfo, closeBandNote, setBandInfoMode } from './modules/band-info.js';
 import { showTooltip, hideTooltip } from './modules/tooltip.js';
 import { selectedPersonIndexes } from './modules/format.js';
@@ -44,6 +46,21 @@ import {
   ringSpecFromPoint,
   hoverRingDiameter,
 } from './modules/hover-ring.js';
+import { PHONE_QUERY } from './modules/breakpoints.js';
+import { etParts, etWallMinutes } from './modules/weekend.js';
+import { renderWeekend } from './modules/weekend-view.js';
+import { renderWeekendList } from './modules/weekend-list.js';
+import { cfbWeekendPasses, isUnplayedGame } from './modules/weekend-data.js';
+import {
+  currentWeek,
+  dayToken,
+  reachableWeeks,
+  selectedDay,
+  selectedWeek,
+  weekDays,
+  weekDisplay,
+} from './modules/weekend-state.js';
+import { waitForFonts, onLateFont } from './modules/chart-frame.js';
 
 const versionMeta = document.querySelector('meta[name="site-data-version"]');
 const version = versionMeta ? versionMeta.content : '';
@@ -61,6 +78,7 @@ const panelTitleEl = document.getElementById('panel-title');
 const barsPanelEl = document.getElementById('bars-panel');
 const mapPanelEl = document.getElementById('map-panel');
 const crewsPanelEl = document.getElementById('crews-panel');
+const weekendPanelEl = document.getElementById('weekend-panel');
 const mapChartEl = document.getElementById('map-chart');
 const barsNoteEl = document.getElementById('bars-note');
 const eraNoteEl = document.getElementById('era-note');
@@ -70,8 +88,7 @@ const barsOnlyEls = ['bars-title', 'bars-footer', 'bars-captions', 'bars-data'].
   document.getElementById(id),
 );
 
-const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
-const mobileMedia = window.matchMedia('(max-width: 640px)');
+const mobileMedia = window.matchMedia(PHONE_QUERY);
 /** True on a touch device with no real hover capability (D-22): these
  * devices keep tap-to-open-panel and never show the hover tooltip. */
 const hoverNoneMedia = window.matchMedia('(hover: none)');
@@ -150,26 +167,34 @@ let lastView = null;
 /** The chart width the scatter was last rendered at, and how many width-only re-renders ran (04.12 D-01). */
 let lastScatterWidth = null;
 let scatterResizeRenders = 0;
+/** The map width the Map was last drawn at (Phase 17.1 D-21: edge-marker spacing is in pixels). */
+let lastMapWidth = null;
 let revision = 0;
 
 /** Whether the scatter's Plotly event handlers are bound (needs one rendered scatter first). */
 let scatterBound = false;
-/** Which panel the last render showed: 'scatter' | 'bars' | 'map' | 'crews'. */
+/** Which panel the last render showed: 'scatter' | 'bars' | 'map' | 'crews' | 'weekend'. */
 let lastPanel = null;
 /** The Map model of the last Map render, or null before one ran. */
 let lastMapModel = null;
 
 /** Telecast index the detail panel currently shows, or null when it's closed. */
 let openPanelIndex = null;
+/** Whether that panel is the "Not played yet." one (a pending row opened from This weekend). */
+let openPanelUnplayed = false;
 
 /** The matched-games table's own sort state (kept out of the URL, D-11/SITE-13). */
 let sort = { key: 'date', dir: 'asc' };
 
+/** The crew pick the table last saw, so a new crew pick resets the sort once (D-06). */
+let sortCrew = null;
+
 /** Opens the detail panel on telecast `i` and remembers it's open, for `render`'s own refresh (D-10). */
-function openDetailPanel(i) {
+function openDetailPanel(i, { unplayed = false } = {}) {
   clearHover();
   openPanelIndex = i;
-  openPanel(i, { data, state, view: lastView });
+  openPanelUnplayed = unplayed;
+  openPanel(i, { data, state, view: lastView, unplayed });
 }
 
 /** Closes the detail panel and forgets it's open. */
@@ -181,11 +206,19 @@ function hideDetailPanel() {
 initPanel({
   onClosed: () => {
     openPanelIndex = null;
+    openPanelUnplayed = false;
   },
 });
 
 /** Pushed into `renderers`: renders the matched-games table and wires its sort headers and Details buttons. */
 function tableRenderer({ data, state, view }) {
+  // D-06: a new crew pick lists the crew's games newest first; a later header click still
+  // re-sorts, and the subtitle follows whatever sort is active.
+  const crew = view.hasCrewSelection ? state.crew : null;
+  if (crew !== sortCrew) {
+    if (crew != null) sort = { key: 'date', dir: 'desc' };
+    sortCrew = crew;
+  }
   renderTable({
     data,
     view,
@@ -207,7 +240,7 @@ function tableRenderer({ data, state, view }) {
 /** The env object `buildFigure` needs, refreshed on every render. */
 function currentEnv() {
   return {
-    theme: darkMedia.matches ? 'dark' : 'light',
+    theme: currentTheme(),
     mobile: mobileMedia.matches,
     revision,
     tooltipMode,
@@ -244,6 +277,85 @@ function cfbActive() {
   return activeSport === 'cfb';
 }
 
+/** The mounted This weekend view, so leaving the tab (or CFB) stops its clock timer. */
+let weekendInstance = null;
+
+function destroyWeekend() {
+  weekendInstance?.destroy();
+  weekendInstance = null;
+}
+
+/**
+ * Whether the master filters hold a pick that applies on This weekend (D-20): an Announcers,
+ * Networks, Conference, School or Booth pick, or a crew pick. Role, Compare and Called together
+ * only refine an Announcers pick, so they are not picks by themselves.
+ */
+function weekendPickActive(st) {
+  return (
+    st.people.length > 0 ||
+    st.crew != null ||
+    st.networks != null ||
+    st.conferences.length > 0 ||
+    st.school.length > 0 ||
+    st.booth.length > 0
+  );
+}
+
+/** Mounts the This weekend view for the state's week and day; returns the summary-line counts. */
+function renderWeekendPanel() {
+  const week = selectedWeek(data, state);
+  const current = currentWeek(data);
+  const reach = reachableWeeks(data);
+  const { games, days } = weekDays(data, week);
+  const day = selectedDay(days, state.day);
+  const pickActive = weekendPickActive(state);
+  const passes = (game) => (pickActive ? cfbWeekendPasses(data, state, game) : null);
+  const networksPicked = (id) => (state.networks == null ? null : state.networks.includes(id));
+  const model = {
+    sport: 'cfb',
+    weekLabel: weekDisplay(week),
+    weekNumber: week.number,
+    weeks: reach.map((w) => ({ label: weekDisplay(w), number: w.number })),
+    isLatestWeek: week.number === current.number,
+    games,
+    day,
+    past: data.weekend != null && week.number < data.weekend.number,
+    missing: false,
+    freshness: data.weekend,
+    links: {},
+  };
+  const opts = {
+    // A function, not a Date: the view re-reads the clock every 60 s while it is mounted.
+    now: () => new Date(),
+    passes,
+    networksPicked,
+    onDay(iso) {
+      setState({ day: dayToken(iso) });
+    },
+    onWeek(delta) {
+      const at = reach.findIndex((w) => w.number === week.number);
+      const target = reach[at + delta];
+      if (!target) return;
+      setState({ week: target.number === current.number ? null : target.number });
+    },
+    onOpen(game) {
+      const now = etParts(opts.now());
+      const unplayed = isUnplayedGame(game, etWallMinutes(now.date, now.minutes));
+      if (game.block === 'scheduled') {
+        clearHover();
+        openScheduledPanel(game.index, { data, state, unplayed });
+      } else {
+        openDetailPanel(game.index, { unplayed });
+      }
+    },
+  };
+  // A second mount on the same host replaces the first and keeps focus on the same control.
+  weekendInstance = (mobileMedia.matches ? renderWeekendList : renderWeekend)(weekendPanelEl, model, opts);
+  const inDay = games.filter((g) => g.date === day || g.date == null);
+  const matching = pickActive ? inDay.filter((g) => passes(g) === true).length : inDay.length;
+  return { matching, total: inDay.length };
+}
+
 /** Recomputes the view, re-renders the chart, syncs the axis UI and the URL, and runs every registered renderer. */
 function render() {
   if (!cfbActive()) return;
@@ -253,6 +365,11 @@ function render() {
   lastView = view;
 
   const ctx = chartContext(data, state);
+  if (state.view !== 'weekend') {
+    destroyWeekend();
+    if (weekendPanelEl) weekendPanelEl.hidden = true;
+  }
+  let weekendCounts = null;
   if (state.view === 'scatter') {
     chartEl.hidden = false;
     if (barsPanelEl) barsPanelEl.hidden = true;
@@ -269,6 +386,17 @@ function render() {
       scatterBound = true;
     }
     lastPanel = 'scatter';
+  } else if (state.view === 'weekend') {
+    chartEl.hidden = true;
+    if (barsPanelEl) barsPanelEl.hidden = true;
+    if (mapPanelEl) mapPanelEl.hidden = true;
+    if (crewsPanelEl) crewsPanelEl.hidden = true;
+    hideBandInfo();
+    if (weekendPanelEl) {
+      weekendPanelEl.hidden = false;
+      weekendCounts = renderWeekendPanel();
+    }
+    lastPanel = 'weekend';
   } else if (state.view === 'crews') {
     chartEl.hidden = true;
     if (barsPanelEl) barsPanelEl.hidden = true;
@@ -276,9 +404,18 @@ function render() {
     hideBandInfo();
     if (crewsPanelEl) {
       crewsPanelEl.hidden = false;
-      const crewsModel = buildCrewsModel(data, view);
-      renderCrewsPanel(crewsPanelEl, crewsModel);
-      crewsHasNewModelSeason = crewsModel.groups.some((g) => g.season >= 2025);
+      const crewsModel = buildCrewRows(data, view, { mode: state.cmode, perSeason: perSeasonApplies(data, state) });
+      renderCrewsPanel(crewsPanelEl, crewsModel, {
+        data,
+        state,
+        view,
+        setState,
+        openGame: openDetailPanel,
+      });
+      // Crews shows excitement averages, so the model-break note applies when the Seasons range
+      // reaches the break season (RT-20).
+      const rangeHi = state.seasons ? state.seasons[1] : data.seasons[data.seasons.length - 1];
+      crewsHasNewModelSeason = rangeHi >= modelBreakSeason(data);
     }
     lastPanel = 'crews';
   } else if (state.view === 'map') {
@@ -289,10 +426,11 @@ function render() {
     hideBandInfo();
     resetMapTap();
     lastMapModel = buildMapModel(data, view, state);
+    lastMapWidth = mapChartEl ? mapChartEl.clientWidth : null;
         renderMapPanel({
       data,
       model: lastMapModel,
-      env: { ...currentEnv(), splat: state.colors !== 'off' },
+      env: { ...currentEnv(), splat: true },
       resize: lastPanel !== 'map',
     });
     lastPanel = 'map';
@@ -328,14 +466,16 @@ function render() {
   if (excitementCaptionEl) {
     // Crews shows excitement medians, so the 2025+ model note applies when any shown group is 2025+.
     excitementCaptionEl.hidden =
-      state.view === 'crews'
+      state.view === 'weekend'
+        ? true
+        : state.view === 'crews'
         ? !crewsHasNewModelSeason
         : (state.axis !== 'excitement' && state.y !== 'excitement') || state.view !== 'scatter';
   }
   // The network-color chips mean nothing on the Crews table; the Networks filter still applies.
   if (legendRowEl) legendRowEl.hidden = state.view === 'crews';
   // Its axis and bar toggles are concealed on Crews; drop the reserved row so the hint sits close.
-  if (chartControlsEl) chartControlsEl.hidden = state.view === 'crews';
+  if (chartControlsEl) chartControlsEl.hidden = state.view === 'crews' || state.view === 'weekend';
   if (eraNoteEl) eraNoteEl.hidden = state.view !== 'scatter';
 
   history.replaceState(null, '', location.pathname + encodeState(state, data));
@@ -345,16 +485,23 @@ function render() {
   // triggers this render, without re-running openPanel's own focus/reveal
   // side effects.
   if (openPanelIndex !== null) {
-    renderPanel(panelBodyEl, panelTitleEl, { data, i: openPanelIndex, state, view });
+    renderPanel(panelBodyEl, panelTitleEl, { data, i: openPanelIndex, state, view, unplayed: openPanelUnplayed });
   }
 
   for (const renderer of renderers) {
     renderer({ data, state, view, setState });
   }
+  if (weekendCounts) {
+    // The selection summary counts the selected day's games (grid, strip and compact table).
+    document.getElementById('summary-count').textContent = `${weekendCounts.matching} of ${weekendCounts.total} games match`;
+    document.getElementById('summary-detail').textContent = '';
+    document.getElementById('summary-detail').removeAttribute('title');
+  }
   const leadKeyEl = document.getElementById('lead-key');
   if (leadKeyEl) leadKeyEl.hidden = state.view !== 'scatter';
   if (state.view === 'map') renderMapShapeLegend(shapeLegendEl, lastMapModel);
   else if (state.view !== 'scatter' && shapeLegendEl) shapeLegendEl.hidden = true;
+  syncResetZoom();
 }
 
 /**
@@ -380,8 +527,29 @@ function renderBarsShell(applies) {
   if (chartBox) chartBox.classList.add('is-concealed');
 }
 
+/**
+ * Reset zoom (13-12): the page-level button replaces the Plotly modebar. It is `aria-disabled`
+ * (grey, `--disabled`) while the active chart shows its home range and `--ink` once zoomed.
+ */
+function syncResetZoom() {
+  const button = document.getElementById('reset-zoom');
+  if (!button) return;
+  const atHome = state?.view === 'map' ? mapAtHome() : scatterAtHome(chartEl);
+  button.setAttribute('aria-disabled', String(atHome));
+}
+
+/** Click on Reset zoom: a no-op at home range, otherwise resets the active chart. */
+function resetActiveZoom() {
+  const button = document.getElementById('reset-zoom');
+  if (!button || button.getAttribute('aria-disabled') === 'true') return;
+  if (state.view === 'map') resetMapZoom();
+  else if (state.view === 'scatter') resetScatterZoom(chartEl);
+}
+
 /** Binds the scatter's Plotly events; runs once, after the first scatter render. */
 function bindScatterEvents() {
+  chartEl.on('plotly_afterplot', syncResetZoom);
+  chartEl.on('plotly_relayout', syncResetZoom);
   // WR-03: Plotly.react is async, so place the band button once the layout is
   // drawn (first render, width changes, axis switches). Writes no Plotly layout.
   chartEl.on('plotly_afterplot', () => {
@@ -425,8 +593,28 @@ function bindScatterEvents() {
  * @param {object} patch
  */
 function setState(patch) {
-  const next = { ...state, ...patch };
+  const prev = state;
+  const exclusive = { ...patch };
+  // D-08, in one place: a crew pick and an Announcers pick never coexist. Setting a crew clears
+  // Announcers, Compare and Called together; setting people (or Compare/Called together) clears the crew.
+  if (patch.crew != null) {
+    exclusive.people = [];
+    exclusive.compare = false;
+    exclusive.together = false;
+  } else if (
+    (Array.isArray(patch.people) && patch.people.length > 0) ||
+    patch.compare === true ||
+    patch.together === true
+  ) {
+    exclusive.crew = null;
+  }
+  const next = { ...state, ...exclusive };
   state = decodeState(encodeState(next, data), data);
+  const message = prev ? describePickChange(prev, state, data) : '';
+  if (message) {
+    const seat = document.getElementById('pick-status');
+    if (seat) seat.textContent = message;
+  }
   render();
 }
 
@@ -482,9 +670,9 @@ async function startCfb(search = location.search) {
       onOnly: (family, before) => setState(familyOnlyPatch(data, lastView, family, before)),
       getNetworks: () => structuredClone(state.networks),
       switchEl: document.getElementById('dots-toggle'),
-      onDots: (dots) => setState({ dots }),
-      colorsEl: document.getElementById('colors-toggle'),
-      onColors: (colors) => setState({ colors }),
+      onDots: (dots) => {
+        if (state.view !== 'weekend') setState({ dots });
+      },
     });
     renderers.push(renderLegend);
 
@@ -492,6 +680,9 @@ async function startCfb(search = location.search) {
 
     initChartTabs({ data, getState: () => state, setState });
     renderers.push(renderChartTabs);
+
+    document.getElementById('reset-zoom')?.addEventListener('click', resetActiveZoom);
+    onMapViewChange(syncResetZoom);
 
     initMapPanel({ setState, getState: () => state, getMatchedCount: () => lastView.matched.length });
 
@@ -511,6 +702,12 @@ async function startCfb(search = location.search) {
           scatterResizeRenders += 1;
           renderChart(chartEl, buildFigure(data, lastView, state, currentEnv()));
           showBandInfo();
+        }
+        // D-21: edge markers are spaced by label height in rendered pixels, so a width change
+        // (a narrowed window, a rotated tablet) rebuilds the map figure from the same model.
+        if (state.view === 'map' && lastMapModel && mapChartEl && mapChartEl.clientWidth !== lastMapWidth) {
+          lastMapWidth = mapChartEl.clientWidth;
+          renderMapPanel({ data, model: lastMapModel, env: { ...currentEnv(), splat: true }, resize: false });
         }
       }, 150);
     });
@@ -533,7 +730,7 @@ async function startCfb(search = location.search) {
       });
     }
 
-    darkMedia.addEventListener('change', () => {
+    onThemeChange(() => {
       if (cfbActive()) render();
     });
     mobileMedia.addEventListener('change', () => {
@@ -541,7 +738,14 @@ async function startCfb(search = location.search) {
     });
 
     // The graph div only gains its `.on()` event-emitter API once Plotly has
-    // rendered into it at least once, so the first render must come first.
+    // rendered into it at least once, so the first render must come first. The first draw
+    // waits (at most 1500ms) for the faces so tick labels and margins do not shift after font
+    // swap; a face that arrives later re-lays the chart out once (13-12, SHELL-06).
+    if (!(await waitForFonts())) {
+      onLateFont(() => {
+        if (cfbActive()) render();
+      });
+    }
     render();
 
     window.__testHooks = {
@@ -567,6 +771,7 @@ async function startCfb(search = location.search) {
         enlargeDots: lastView.enlargeDots,
         drawnFaded: lastView.drawnFaded,
         hasPersonSelection: lastView.hasPersonSelection,
+        hasCrewSelection: lastView.hasCrewSelection,
         hasGameSelection: lastView.hasGameSelection,
         highlighted: lastView.highlighted,
         matched: lastView.matched,
@@ -602,6 +807,7 @@ async function startCfb(search = location.search) {
           subjects: m.subjects.map(({ kind, key, label, symbol }) => ({ kind, key, label, symbol })),
           shapesCapped: m.shapesCapped,
           hasShared: m.hasShared,
+          refGames: m.venueModel.refGames,
           venueDots: structuredClone(m.venueDots),
           venueFaded: structuredClone(m.venueFaded),
           legs: m.legs.map((leg) => ({
@@ -731,6 +937,7 @@ async function showSport(id) {
   for (const pop of document.querySelectorAll(':popover-open')) pop.hidePopover();
   if (openPanelIndex !== null) hideDetailPanel();
   window.scrollTo(0, 0);
+  if (id !== 'cfb') destroyWeekend();
 
   if (id !== 'cfb') {
     const entry = sportMeta(id);

@@ -39,6 +39,8 @@ let expandKey = '';
 let barsBound = false;
 let lastModel = null;
 let lastShownRows = [];
+/** True while a pick is active: hero bars and the tooltip border take the accent. */
+let lastMatched = false;
 let pendingFocusKey = null;
 let pendingTapKey = null;
 let pendingTapAt = 0;
@@ -105,7 +107,7 @@ function onPointClick(ref, ev) {
         lastShownRows[ref.r],
         currentTheme(),
       );
-      const tone = barTones(lastShownRows[ref.r], currentTheme());
+      const tone = barTones(lastShownRows[ref.r], currentTheme(), lastMatched);
       showTextTooltip(lines, {
         theme: currentTheme(),
         borderColor: tone.a,
@@ -129,7 +131,7 @@ function onPointHover(ref, ev) {
     lastShownRows[ref.r],
     currentTheme(),
   );
-  const tone = barTones(lastShownRows[ref.r], currentTheme());
+  const tone = barTones(lastShownRows[ref.r], currentTheme(), lastMatched);
   showTextTooltip(lines, {
     theme: currentTheme(),
     borderColor: tone.a,
@@ -317,6 +319,7 @@ export function renderBarsPanel({ data, state, view, env }) {
     state.school.join(','),
     String(state.h2h === true),
     state.people.join(','),
+    String(state.crew),
     JSON.stringify(state.networks),
   ].join('|');
   if (key !== expandKey) {
@@ -345,7 +348,8 @@ export function renderBarsPanel({ data, state, view, env }) {
   chart.classList.remove('is-concealed');
   setHidden(['bars-footer', 'bars-captions', 'bars-data'], false);
 
-  const figEnv = { ...env, width: chart.clientWidth || env.width };
+  lastMatched = state.people.length > 0 || state.crew != null;
+  const figEnv = { ...env, width: chart.clientWidth || env.width, matched: lastMatched };
   const figure =
     model.kind === 'butterfly' ? buildButterflyFigure(model, shown, figEnv) : buildBarFigure(model, shown, figEnv);
   renderBars(chart, figure);

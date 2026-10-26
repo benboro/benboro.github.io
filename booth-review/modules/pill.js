@@ -3,8 +3,7 @@
  * text pill reused by the legend chips, the detail panel's network field,
  * and the matched-games table's network cell (plan 05).
  *
- * DOM-free except for `currentTheme`'s own `window.matchMedia` read and
- * `makePill`'s `document.createElement` call -- no other browser API is
+ * DOM-free except for `makePill`'s `document.createElement` call -- no other browser API is
  * touched, so this module stays importable from node for a quick check. DOM
  * is built only with createElement/textContent -- never any
  * markup-injecting DOM API (T-04-31/T-04-34), matching filters.js/panel.js/
@@ -68,13 +67,45 @@ export function nameWithRoles(...nodes) {
 }
 
 /**
- * The current color-scheme theme, read live from the browser (not cached),
- * matching `app.js`'s own `darkMedia` check.
- * @returns {"light"|"dark"}
+ * A crew cell's people as one wrapping list (15-12 r6). Each person after the first carries
+ * its own " · " separator, drawn in the gap before it; the list clips that gap (style.css
+ * `.crew-list`), so a person who starts a line shows no separator and one who follows
+ * another on the same line does -- on every resize, with no measuring. The separator stays
+ * real text (aria-hidden) so a plain-text copy still reads "A PBP · B Analyst".
+ * @param {Node[]} people - one node per person (a `nameWithRoles` span or plain text)
+ * @param {Node[]} [notes] - trailing notes (a provenance tag) that take no separator
+ * @returns {HTMLSpanElement}
  */
-export function currentTheme() {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+export function crewList(people, notes = []) {
+  const outer = document.createElement('span');
+  outer.className = 'crew-list';
+  const inner = document.createElement('span');
+  inner.className = 'crew-list-inner';
+  people.forEach((node, idx) => {
+    const item = document.createElement('span');
+    item.className = 'crew-item';
+    if (idx > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'crew-sep';
+      sep.setAttribute('aria-hidden', 'true');
+      sep.textContent = ' · ';
+      item.append(sep);
+    }
+    item.append(node);
+    inner.append(item);
+  });
+  for (const node of notes) {
+    const item = document.createElement('span');
+    item.className = 'crew-item crew-note';
+    item.append(node);
+    inner.append(item);
+  }
+  outer.append(inner);
+  return outer;
 }
+
+// Re-exported so the existing importers keep working; the theme module owns it.
+export { currentTheme } from './theme.js';
 
 /**
  * Builds a filled text pill (`span.pill`) for a network or family name,
@@ -91,7 +122,7 @@ export function makePill(text, family, theme) {
   span.className = 'pill';
   span.dataset.family = key;
   span.style.backgroundColor = FAMILY_COLORS[theme][key];
-  span.style.color = PILL_TEXT_COLOR[key];
+  span.style.color = PILL_TEXT_COLOR[theme][key];
   span.textContent = text;
   return span;
 }

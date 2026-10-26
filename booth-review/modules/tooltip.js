@@ -3,7 +3,7 @@
  * `TOOLTIP_MODE` in `chart.js` swaps Plotly's own pseudo-HTML hover label
  * (which can't draw a filled background) for a small `position: fixed`
  * tooltip built here, positioned next to the hovered dot, whose network
- * names render as real `pill.js` pills instead of colored text.
+ * networks render as logos (or a name) through `network.js`.
  *
  * `tooltipModel` is the pure, DOM-free content decision shared by both
  * tooltip paths: this module's `renderTooltipContent` (html mode) and
@@ -32,7 +32,9 @@ import {
   stripNetworkNote,
 } from './format.js';
 import { makeGameTypeIcon } from './icons.js';
-import { makePill, makeRolePill, nameWithRoles, roleKey, ROLE_PILL_TEXT } from './pill.js';
+import { networkMark, networkMarks, sortNetworks } from './network.js';
+import { crewBox } from './panel-parts.js';
+import { makeRolePill, nameWithRoles, roleKey, ROLE_PILL_TEXT } from './pill.js';
 import {
   FAMILY_COLORS,
   MAP_DOT_NEUTRAL,
@@ -65,7 +67,7 @@ const EDGE_MARGIN = 8;
  * under it, notes-2 #6; the time-slot label is panel-only), slash-delimited networks (primary first,
  * each already stripped of any nested methodology parenthetical), one
  * "Position: Name" line per main-feed crew member, viewers, the active axis
- * value, and a closing "Click for details →" hint. Conferences, the time
+ * value. Conferences, the time
  * slot, the full outlet list, the measurement-type badge, era/event flags,
  * and any scoring-source note are panel-only (SITE-25) -- never repeated
  * here. `dateText` is the date and kickoff only; `gameType` the named-game
@@ -75,7 +77,7 @@ const EDGE_MARGIN = 8;
  * @param {object} data - a `prepareData` result.
  * @param {number} i - telecast index.
  * @param {{axis: "spread"|"excitement", y?: "viewers"|"excitement"|"points"|"margin", selected?: Set<number>}} opts
- * @returns {{crew: {name: string, role: string, selected: boolean}[], title: string, dateText: string, gameType: {icons: ("bowl"|"playoff"|"rivalry")[], text: string}|null, networks: {name: string, family: string}[], crewLines: string[], viewersLine: string, axisLine: string, scoreLine: string|null, hint: string}}
+ * @returns {{crew: {name: string, role: string, selected: boolean}[], title: string, dateText: string, gameType: {icons: ("bowl"|"playoff"|"rivalry")[], text: string}|null, networks: {id: string, name: string, family: string}[], crewLines: string[], viewersLine: string, axisLine: string, scoreLine: string|null}}
  */
 export function tooltipModel(data, i, { axis, y = 'viewers', selected = new Set() }) {
   const t = data.t;
@@ -86,10 +88,12 @@ export function tooltipModel(data, i, { axis, y = 'viewers', selected = new Set(
   const gameType = namedGameInfo(data, i);
 
   const primaryNetwork = data.lookups.networks[t.network[i]];
-  const otherOutlets = t.outlets[i]
+  // The other outlets read in network precedence (U7); the primary stays first.
+  const otherOutlets = sortNetworks(t.outlets[i]
     .filter((idx) => idx !== t.network[i])
-    .map((idx) => data.lookups.networks[idx]);
+    .map((idx) => data.lookups.networks[idx]));
   const networks = [primaryNetwork, ...otherOutlets].map((net) => ({
+    id: net.id,
     name: stripNetworkNote(net.name),
     family: net.family,
   }));
@@ -109,19 +113,18 @@ export function tooltipModel(data, i, { axis, y = 'viewers', selected = new Set(
   // A Map, not an object literal, so an unexpected `y` such as "constructor" finds nothing.
   const score = SCORE_LINES.get(y);
   const scoreLine = score ? `${score.label}: ${data[score.key][i] ?? 'not available'}` : null;
-  const hint = 'Click for details →';
   const boothLine = boothLabel(data, i);
 
-  return { boothLine, title, dateText, gameType, networks, crew, crewLines, viewersLine, axisLine, scoreLine, hint };
+  return { boothLine, title, dateText, gameType, networks, crew, crewLines, viewersLine, axisLine, scoreLine };
 }
 
 /**
  * Rebuilds `el`'s children from `model` (`replaceChildren`, never an
- * incremental append) -- a title, a space-separated row of `pill.js` pills
+ * incremental append) -- a title, a row of network marks (no family dot: the border carries it)
  * (SITE-26, D-29 -- the `.tooltip-networks` flex row's own gap is the only
  * visible separator between pills, no separator element or text), one line
- * per date/crew/viewers/axis fact, and a closing hint. Every string is
- * assigned via `textContent`/`makePill` (which itself only uses
+ * per date/crew/viewers/axis fact. Every string is
+ * assigned via `textContent`/`networkMark` (which itself only uses
  * `textContent`), so a malicious team/crew/network name can never become a
  * real element (T-04.1-25). Also sets `el`'s own border color to the
  * primary network's (`model.networks[0]`, always first per `tooltipModel`)
@@ -156,9 +159,7 @@ export function renderTooltipContent(el, model, theme) {
 
   const networksRow = document.createElement('div');
   networksRow.className = 'tooltip-networks';
-  model.networks.forEach((net) => {
-    networksRow.appendChild(makePill(net.name, net.family, theme));
-  });
+  networksRow.appendChild(networkMarks(model.networks, { dot: false }));
   children.push(networksRow);
 
   const primaryFamily = familyKey(model.networks[0].family);
@@ -172,7 +173,7 @@ export function renderTooltipContent(el, model, theme) {
     children.push(missing);
   } else {
     const box = document.createElement('div');
-    box.className = 'crew-box';
+    box.className = model.crew.some((e) => e.selected) ? 'crew-box is-matched' : 'crew-box';
     for (const entry of model.crew) {
       const line = document.createElement('div');
       line.className = 'crew-line';
@@ -204,11 +205,6 @@ export function renderTooltipContent(el, model, theme) {
     scoreLine.textContent = model.scoreLine;
     children.push(scoreLine);
   }
-
-  const hint = document.createElement('div');
-  hint.className = 'tooltip-hint';
-  hint.textContent = model.hint;
-  children.push(hint);
 
   el.replaceChildren(...children);
 }
@@ -252,16 +248,62 @@ function placeTooltip(el, clientX, clientY) {
 }
 
 /**
- * Shows plain text lines in the shared tooltip (Bars/Butterfly, D-16).
- * @param {{text: string, kind: 'title'|'body'|'hint', swatch?: string, roles?: string[]}[]} lines
- * @param {{theme: string, borderColor: string, clientX: number, clientY: number}} opts
+ * A keyed count table (NFL Special games hover, notes 15): one row per category with its
+ * colour dot, label and a right-aligned count, and an optional muted sub-line under the label.
+ * @param {{color: string, label: string, value: string, sub?: string|null}[]} rows
+ * @returns {HTMLTableElement}
  */
-export function showTextTooltip(lines, { borderColor, clientX, clientY }) {
+function countsTable(rows) {
+  const table = document.createElement('table');
+  table.className = 'tooltip-counts';
+  const tbody = document.createElement('tbody');
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    const label = document.createElement('td');
+    const chip = document.createElement('span');
+    chip.className = 'tooltip-counts-dot';
+    chip.setAttribute('aria-hidden', 'true');
+    chip.style.backgroundColor = row.color;
+    label.append(chip, document.createTextNode(row.label));
+    if (row.sub) {
+      const sub = document.createElement('span');
+      sub.className = 'tooltip-counts-sub';
+      sub.textContent = row.sub;
+      label.appendChild(sub);
+    }
+    const value = document.createElement('td');
+    value.className = 'num';
+    value.textContent = row.value;
+    tr.append(label, value);
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  return table;
+}
+
+/**
+ * Shows plain text lines in the shared tooltip (Bars/Butterfly, D-16).
+ * @param {({text: string, kind: 'title'|'body'|'hint'|'aside'|'footnote', swatch?: string, roles?: string[]}|{kind: 'network', network: {id?: string, name: string, family: string}}|{kind: 'crew', entries: {name: string, role: string, selected?: boolean}[]}|{kind: 'counts', rows: {color: string, label: string, value: string, sub?: string|null}[]})[]} lines
+ * @param {{theme: string, borderColor: string, clientX: number, clientY: number, hoverable?: boolean}} opts
+ *   `hoverable` lets the pointer rest on the tip (WCAG 1.4.13); every other show clears it.
+ */
+export function showTextTooltip(lines, { borderColor, clientX, clientY, hoverable = false }) {
   const el = ensureTooltipEl();
-  const children = lines.map(({ text, kind, swatch, roles }) => {
+  const children = lines.map(({ text, kind, swatch, roles, network, entries, rows }) => {
+    // Rich kinds (NFL scatter hover): a network logo mark and a D-01 crew box.
+    if (kind === 'network') {
+      const row = document.createElement('div');
+      row.className = 'tooltip-networks';
+      row.appendChild(networkMark(network, { dot: false }));
+      return row;
+    }
+    if (kind === 'crew') return crewBox(entries);
+    if (kind === 'counts') return countsTable(rows);
     const node = document.createElement(kind === 'title' ? 'strong' : 'div');
     if (kind === 'title') node.className = 'tooltip-title';
     if (kind === 'hint') node.className = 'tooltip-hint';
+    if (kind === 'aside') node.className = 'tooltip-aside';
+    if (kind === 'footnote') node.className = 'tooltip-footnote';
     if (swatch) {
       const chip = document.createElement('span');
       chip.className = 'tooltip-swatch';
@@ -284,6 +326,8 @@ export function showTextTooltip(lines, { borderColor, clientX, clientY }) {
   el.style.borderColor = borderColor;
   delete el.dataset.family;
   delete el.dataset.kind;
+  if (hoverable) el.dataset.hoverable = '';
+  else delete el.dataset.hoverable;
   el.hidden = false;
   placeTooltip(el, clientX, clientY);
 }
@@ -304,6 +348,7 @@ export function showTooltip(data, i, { axis, y, theme, clientX, clientY, selecte
   const el = ensureTooltipEl();
   renderTooltipContent(el, tooltipModel(data, i, { axis, y, selected }), theme);
   delete el.dataset.kind;
+  delete el.dataset.hoverable;
   el.hidden = false;
 
   placeTooltip(el, clientX, clientY);
@@ -315,10 +360,6 @@ export function hideTooltip() {
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-
-/** Credit note for aggregate viewer sums (CLAUDE.md Website rule): the games table credits each source. */
-export const VENUE_CREDIT_NOTE =
-  "Viewers add up published figures from Ratings Reference and other outlets; the games table (click the dot) credits each game's source.";
 
 /**
  * The 48px venue pie (Phase 11 D-02): slices clockwise from 12 o'clock in the given order,
@@ -369,7 +410,7 @@ export function venuePieSvg(slices, theme) {
 /**
  * Shows the venue hover card (Phase 11 D-02, D-01a) from a plain card object.
  * @param {{title: string, leader: string, slices: object[], rows: object[],
- *   hasMissingViewers: boolean, hasPartialViewers?: boolean, hasViewers: boolean,
+ *   hasMissingViewers: boolean, hasPartialViewers?: boolean,
  *   subjectLines: {text: string, kind: string}[]}} card
  * @param {{theme: "light"|"dark", clientX: number, clientY: number, hint: string}} opts
  */
@@ -418,9 +459,6 @@ export function showVenueTooltip(card, { theme, clientX, clientY, hint }) {
   if (card.hasPartialViewers) {
     children.push(text('p', 'tooltip-footnote', '* Viewers cover rated games only'));
   }
-  if (card.hasViewers) {
-    children.push(text('p', 'tooltip-footnote tooltip-credit', VENUE_CREDIT_NOTE));
-  }
   for (const line of card.subjectLines) {
     children.push(text('div', line.kind === 'hint' ? 'tooltip-hint' : '', line.text));
   }
@@ -429,6 +467,7 @@ export function showVenueTooltip(card, { theme, clientX, clientY, hint }) {
   el.replaceChildren(...children);
   el.style.borderColor = MAP_FAMILY_COLORS[theme][card.leader];
   delete el.dataset.family;
+  delete el.dataset.hoverable;
   el.dataset.kind = 'venue';
   el.hidden = false;
   placeTooltip(el, clientX, clientY);

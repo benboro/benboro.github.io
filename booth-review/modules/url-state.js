@@ -16,14 +16,18 @@
  * `school` (comma-separated team slugs, ordered by team index), `postseason`
  * (`exclude`/`only`; omitted at the default `all`), `seasons`, `networks`,
  * `slot`, `axis` (`excitement`/`date`; Spread is the default and is omitted), `y`
- * (`excitement`/`points`/`margin`; Viewers is the default and is omitted; y wins over `axis=excitement`, 04.15 D-12), `view` (`bars`/`butterfly`/`map`/`crews`), `by` (`network`/`team`/`conference`);
+ * (`excitement`/`points`/`margin`; Viewers is the default and is omitted; y wins over `axis=excitement`, 04.15 D-12), `view` (`bars`/`butterfly`/`map`/`crews`/`weekend`), `week` and `day` (This weekend, Phase 18), `by` (`network`/`team`/`conference`);
  * each of the last two is omitted at its default (D-13). `h2h` (`1`, only with
  * exactly two schools; omitted at Either team) and `dots` (`hide`; omitted at
  * the Fade default; 04.7 D-10, D-14). `game` (one named-game slug: a bowl franchise,
  * a rivalry, or a CFP round; allowlisted against `data.gameIndexBySlug`; omitted when
  * no game is picked; 04.9 D-20). `venue` (one venue or abroad-group slug, allowlisted against
- * `data.venueIndexesByKey`; omitted when none; Phase 11 D-05) and `colors` (`off`; omitted at the
- * On default; Phase 11 D-09). `booth` (`a`,`b`,`other`, canonical order; omitted when no
+ * `data.venueIndexesByKey`; omitted when none; Phase 11 D-05) (an old `colors` param is ignored; colours are always on, Phase 17.1 D-07). The Crews params (Phase 14 D-06..D-10), view-agnostic like `by` so a
+ * stale `?view=scatter&crew=...` survives a setState round trip: `crew` (a pooled crew key, allowlisted
+ * by `CREW_KEY_RE` and by existence in `crewIndex(data).crews`; dropped when `people` is present, A7),
+ * `cmode` (`pbp`/`analyst`; Crew is the omitted default), `perseason` (`0` = pooled; Per season is the omitted default since Phase 14 Plan 10, and a
+ * one-season range applies it as pooled without storing that) and `csort` (`<key>` or `<key>.asc|desc`; omitted at the default of the stored Per season preference, Season newest first or Games descending, so a chosen sort survives a one-season range; `rank`
+ * only in Crew mode, `season` only with Per season on, A8). `booth` (`a`,`b`,`other`, canonical order; omitted when no
  * tier is picked; Phase 10 D-12). The old `bars` and
  * `group` params are ignored (04.6 D-27). There is no `team` param on encode -- `school` replaces
  * it (D-11, Pitfall 4). The legacy `team` param is still *decoded*: a valid
@@ -33,10 +37,15 @@
  */
 
 import { MAX_COMPARE, defaultState } from './select.js';
+import { CREW_KEY_RE, NATURAL_DIR, crewIndex, defaultSort } from './crew-groups.js';
+import { DAY_TOKENS, decodeDay, decodeWeek } from './weekend-state.js';
 
 /** Canonical time-slot order used both for encoding and decoding the `slot` param. */
 // Y measures a link may name; Viewers is the default and is never encoded (04.17 D-19).
 const Y_VALUES = ['excitement', 'points', 'margin'];
+// Crews table sort keys a link may name (Phase 14). The default depends on the mode: Season newest
+// first (then Games called) when rows are per season, else Games called descending; it encodes to nothing.
+const CSORT_RE = /^(crew|season|rank|network|games|exc|viewers)(\.(asc|desc))?$/;
 // Booth tiers in canonical order (Phase 10 D-12).
 const BOOTH_ORDER = ['a', 'b', 'other'];
 const SLOT_ORDER = ['noon', 'afternoon', 'prime', 'late'];
@@ -115,10 +124,29 @@ export function encodeState(state, data) {
 
   if (state.axis === 'excitement' || state.axis === 'date') params.push(['axis', state.axis]);
   if (Y_VALUES.includes(state.y)) params.push(['y', state.y]);
-  if (state.view === 'bars' || state.view === 'butterfly' || state.view === 'map' || state.view === 'crews') params.push(['view', state.view]);
+  if (state.view === 'bars' || state.view === 'butterfly' || state.view === 'map' || state.view === 'crews' || state.view === 'weekend') params.push(['view', state.view]);
+  // This weekend (Phase 18): the stepper's week number and the day token, each omitted at its
+  // default (the current weekend, the sport's default day) and validated again on decode. Only
+  // the weekend tab writes them, so another tab's link never carries them and reopening the tab
+  // lands on the current weekend (18-13 F16), as on the NFL page.
+  if (state.view === 'weekend') {
+    if (Number.isInteger(state.week)) params.push(['week', String(state.week)]);
+    if (DAY_TOKENS.includes(state.day)) params.push(['day', state.day]);
+  }
   if (state.by) params.push(['by', state.by]);
   if (state.dots === 'hide') params.push(['dots', 'hide']);
-  if (state.colors === 'off') params.push(['colors', 'off']);
+  if (state.crew != null) params.push(['crew', state.crew]);
+  if (state.cmode === 'pbp' || state.cmode === 'analyst') params.push(['cmode', state.cmode]);
+  if (state.perseason === false) params.push(['perseason', '0']);
+  if (state.csort != null && CSORT_RE.test(state.csort.key)) {
+    const { key, dir } = state.csort;
+    const natural = NATURAL_DIR[key];
+    // The default follows the stored Per season preference, not the range, so a chosen
+    // `csort=games` survives a one-season range and is still there when it widens.
+    const def = defaultSort(state.perseason !== false);
+    const isDefault = key === def.key && dir === def.dir;
+    if (!isDefault) params.push(['csort', dir === natural ? key : `${key}.${dir}`]);
+  }
 
   if (params.length === 0) return '';
   return `?${params.map(([key, value]) => `${key}=${value}`).join('&')}`;
@@ -334,11 +362,50 @@ export function decodeState(search, data) {
   // (D-12): a stale `?view=bars` must survive a setState round trip.
   const rawView = scalarParam(params, 'view');
   state.view = rawView === 'bars' || rawView === 'butterfly' || rawView === 'map' || rawView === 'crews' ? rawView : 'scatter';
+  // The This weekend tab exists only when the build ships weeks (no weeks, no tab).
+  if (rawView === 'weekend' && (data.weeks ?? []).length > 0) state.view = 'weekend';
+  // This weekend (Phase 18, D-07, D-23): week and day are allowlisted against the shipped weeks
+  // and that week's games; anything else, and a value equal to the default, drops (T-18-31).
+  // Read on the weekend tab only, the same rule the encoder follows (18-13 F16).
+  const onWeekend = state.view === 'weekend';
+  state.week = onWeekend ? decodeWeek(scalarParam(params, 'week'), data) : null;
+  state.day = onWeekend ? decodeDay(scalarParam(params, 'day'), data, state.week) : null;
   const rawBy = scalarParam(params, 'by');
   state.by = ['network', 'team', 'conference'].includes(rawBy) ? rawBy : null;
   // Fade is the default; only the literal 'hide' selects Hide (04.7 D-10).
   state.dots = scalarParam(params, 'dots') === 'hide' ? 'hide' : 'fade';
-  state.colors = scalarParam(params, 'colors') === 'off' ? 'off' : 'on';
+
+  // Crews params (Phase 14). The crew index is built only when `crew` is present, so a crew-free
+  // URL does no grouping work. A pick of people wins over a crew in the same link (A7, D-08).
+  const rawCrew = scalarParam(params, 'crew');
+  state.crew =
+    rawCrew != null &&
+    state.people.length === 0 &&
+    CREW_KEY_RE.test(rawCrew) &&
+    crewIndex(data).crews.has(rawCrew)
+      ? rawCrew
+      : null;
+  const rawCmode = scalarParam(params, 'cmode');
+  state.cmode = rawCmode === 'pbp' || rawCmode === 'analyst' ? rawCmode : 'crew';
+  // Per season needs two or more seasons in the range to change anything (D-10).
+  const lo = state.seasons ? state.seasons[0] : data.seasonMin;
+  const hi = state.seasons ? state.seasons[1] : data.seasonMax;
+  const seasonsInRange = data.seasons.filter((season) => season >= lo && season <= hi).length;
+  // Per season is the default (14-10 checkpoint, 2026-10-23); only an explicit `0` pools. The state keeps
+  // the preference even on a one-season range, where pooled and per-season rows are the same; the
+  // consumers apply the two-season rule (`perSeasonApplies`).
+  state.perseason = scalarParam(params, 'perseason') !== '0';
+  const csortMatch = CSORT_RE.exec(scalarParam(params, 'csort') ?? '');
+  state.csort = null;
+  if (csortMatch) {
+    const key = csortMatch[1];
+    const dir = csortMatch[3] ?? NATURAL_DIR[key];
+    const modeOk = key !== 'rank' || state.cmode === 'crew';
+    const seasonOk = key !== 'season' || (state.perseason && seasonsInRange >= 2);
+    const def = defaultSort(state.perseason);
+    const isDefault = key === def.key && dir === def.dir;
+    if (modeOk && seasonOk && !isDefault && NATURAL_DIR[key] !== undefined) state.csort = { key, dir };
+  }
 
   return state;
 }

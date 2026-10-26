@@ -1,14 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Methodology · booth-review</title>
+<meta name="color-scheme" content="light">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-3X8cQOj/cXituylxrdSzRHcUA54wd0n/61WoACv9mnQ='; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Methodology · The Broadcast Ledger</title>
+<script>(function () {
+  var K = 'bl-theme', r = document.documentElement;
+  var N = { light: 'Switch to dark theme', dark: 'Switch to light theme' };
+  function stored() {
+    try { return localStorage.getItem(K) === 'dark' ? 'dark' : 'light'; } catch (e) { return 'light'; }
+  }
+  function apply(t) {
+    if (r.getAttribute('data-theme') !== t) r.setAttribute('data-theme', t);
+    var m = document.querySelector('meta[name="color-scheme"]');
+    if (m) m.setAttribute('content', t);
+    var b = document.getElementById('theme-toggle');
+    if (b) { b.setAttribute('aria-label', N[t]); b.title = N[t]; b.hidden = false; }
+  }
+  apply(stored());
+  document.addEventListener('DOMContentLoaded', function () {
+    apply(r.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+  });
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) apply(stored());
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#theme-toggle');
+    if (!b) return;
+    var t = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    apply(t);
+    try { localStorage.setItem(K, t); } catch (x) {}
+  });
+})();
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><a href="index.html">booth-review</a></header>
+<header class="site-header"><a href="index.html" class="site-title">The Broadcast Ledger</a><nav class="header-links" aria-label="Pages"><a href="methodology.html">Methodology</a><a href="coverage.html">Coverage</a></nav><span id="theme-slot"><button type="button" id="theme-toggle" class="theme-toggle" hidden aria-label="Switch to dark theme" title="Switch to dark theme">
+    <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>
+    <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+  </button></span></header>
 <main class="page"><h1 id="methodology">Methodology</h1>
 <p>This page explains what the chart on this site can and cannot say, in plain
 language. It covers what is plotted, why the sample is not a random sample of
@@ -249,6 +282,40 @@ filter.</p>
 rather than matched as literal strings, so that, for example, a parent and
 child who share the same name are kept as two separate, distinct people
 rather than merged into one.</p>
+<h2 id="crews">Crews</h2>
+<p>The Crews table groups college football telecasts by booth. A crew is a
+play-by-play voice and that season's regular analyst within one network family
+(ESPN/ABC, FOX, CBS or NBC), or within one network for any other network. A
+pair that changes family is two rows. Where a network's lineup names a booth
+order, the regular analyst is the one the lineup cites; otherwise, for a voice with no
+shipped booth assignment, it is the analyst who worked the most games with that
+voice, counted over the games this site shows (one telecast per game), so a
+game's second telecast never tips it. The exception is an uncited voice in a
+family-season that also has cited booths: the build counts that voice's most
+frequent analyst over every main telecast and ships the booth as an <code>other</code>
+booth, and the table reads that analyst as is. A
+game where the regular analyst was absent stays in the crew and is marked
+fill-in; if the cited analyst called none of the games shown, every game with an
+analyst is marked fill-in and the row names the voice's most common analysts. A
+usual three-person booth names all three people.</p>
+<p>Rows split by season by default when the Seasons range covers two or more
+seasons, and a Per season switch pools them across the range instead. On a
+telecast with a resolved play-by-play voice, only the play-by-play and analyst
+seats name the crew, so a person of unknown role on that telecast (often a
+sideline reporter) is not shown in its row. Telecasts where no one has a
+resolved play-by-play role are grouped by their exact people, and people whose
+role is unknown are marked unknown role. When a person's role is known in some of their
+games, the mark reads "unknown role in k of n games".</p>
+<p>The play-by-play and analyst views group by one person instead of the pair.
+They leave out telecasts with no person in that role, and say how many.</p>
+<p>An average from fewer than 8 games is flagged n &lt; 8. A pooled row whose games
+fall on both sides of <a href="#the-2025-excitement-break">the 2025 excitement break</a>,
+or across more than one <a href="#measurement-eras">measurement era</a>, shows "see Per
+season" instead of an average. The Crews table treats a whole season as one
+measurement band, so a Per season row never blanks for a mid-season switch; bands
+change at the 2020, 2025 and 2026 seasons. Average viewers mostly reflects which games a
+crew was assigned, not how well it called them; see
+<a href="#assignments-not-quality">assignments, not quality</a>.</p>
 <h2 id="the-map">The map</h2>
 <p>The map shows where games were played and who traveled to call them. Each
 venue has one dot, colored by the network with the most games there. Hover a
@@ -257,10 +324,14 @@ games in the table below.</p>
 <p>The viewer totals on the hover card add up published figures from Ratings Reference and from second sources (Sports Media Watch, The TV Ratings Guide, Awful Announcing and ESPN Press Room); click the dot to list its games in the table, where each game's figure is credited to the page it came from.</p>
 <p>There is one dot per venue, counting only the games that pass the filters. Its
 color fades toward a neutral when the venue's games split between networks, and
-its size blends how many games it hosted with how many people watched. With
-announcers picked, the dots, their sizes and colors, and the map's coloring count
-only the games those announcers called (together, when called together is on);
-venues where they called no game stay on the map as paler dots.</p>
+its size is the number of games at the venue: dot area is proportional to games,
+with no minimum size, and the busiest venue among the games shown draws at full
+size, so narrowing a filter rescales the dots and the size key. With announcers
+picked, the dots, their colors, and the map's coloring count only the games
+those announcers called (together, when called together is on), and the busiest
+venue among those games draws at full size, whatever the dot's shape; the size
+key follows it. Venues where they called no game stay on the map as paler dots,
+sized as they would be with no announcer picked.</p>
 <p>Where each dot sits comes from one list of venues from CollegeFootballData.com.
 Each game uses its own venue, so a neutral-site or bowl game sits where it was
 played, not at a team's home stadium.</p>
@@ -278,7 +349,6 @@ abroad add no color to the map. A game with no known location is left off the ma
 and counted in a note.</p>
 <h3 id="how-the-map-is-colored">How the map is colored</h3>
 <p>Each venue pulls color from the networks that aired its games, and the network with the most games leads. How far and how strongly a venue pulls blends how many games it hosted with how many people watched, with games counting a little more than viewers. Areas with few games, or where networks split the games, look faint. Games with no published viewer figure count as a low-rated game here; the figure is not shown anywhere.</p>
-<p>The Network colors switch above the map turns the coloring off.</p>
 <h2 id="sources-and-credits">Sources and credits</h2>
 <p><strong>Ratings Reference.</strong> Most viewership figures on this chart come from
 <a href="https://ratingsreference.com">RatingsReference.com</a>, published under
@@ -636,6 +706,6 @@ a published Ratings Reference viewer figure, so the chart shows 1 dot.
 These games now appear in the 'No public rating' strip, and the counts read 'N rated of M games'.</p>
 <h3 id="games-with-no-public-rating_1">Games with no public rating</h3>
 <p>Games with no public viewer figure are shown, not dropped: they sit in a "No public rating" strip, each with its cause. See <a href="https://github.com/benboro/booth-review/blob/main/docs/methodology.md#games-with-no-public-rating">Games with no public rating</a> for the causes and how the counts work.</p></main>
-<footer class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 8 · Viewership through Week 7</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p></footer>
+<footer class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 8 · Viewership through Week 7</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p><p class="trademark-line">Network logos are trademarks of their owners, shown only to identify each network. Their use does not imply endorsement, and they are not covered by this site's MIT license.</p><p class="type-line">Type: <a href="fonts/OFL-crimson-text.txt">Crimson Text</a> (copyright 2010 The Crimson Text Project Authors), <a href="fonts/OFL-roboto.txt">Roboto</a> (copyright 2011 The Roboto Project Authors) and <a href="fonts/OFL-roboto-condensed.txt">Roboto Condensed</a> (copyright 2011 Google Inc.), used under the SIL Open Font License 1.1.</p></footer>
 </body>
 </html>

@@ -15,6 +15,7 @@
 
 import {
   crewEntries,
+  crewPickNames,
   formatDate,
   formatMatchup,
   formatViewers,
@@ -23,7 +24,9 @@ import {
   figureSourceOf,
 } from './format.js';
 import { safeHref } from './panel.js';
-import { currentTheme, makePill, makeRolePill, nameWithRoles } from './pill.js';
+import { networkMark } from './network.js';
+import { attachScrollCue } from './scroll-cue.js';
+import { crewList, makeRolePill, nameWithRoles } from './pill.js';
 import { personOnGame } from './select.js';
 import { venueFilterInfo } from './map-model.js';
 
@@ -31,6 +34,12 @@ const tableEl = document.getElementById('games-table');
 const emptyEl = document.getElementById('table-empty');
 const venueChipsEl = document.getElementById('venue-chips');
 const venueNoMatchEl = document.getElementById('venue-nomatch');
+// The static table gets a sideways scroller of its own (phone scroll cue, 13-14).
+const scrollEl = document.createElement('div');
+scrollEl.className = 'table-scroll';
+tableEl.before(scrollEl);
+scrollEl.append(tableEl);
+attachScrollCue(scrollEl, () => scrollEl.closest('.module')?.querySelector(':scope > .module-head') ?? null);
 const tbody = tableEl.querySelector('tbody');
 const dateSortButton = tableEl.querySelector('th button[data-sort="date"]');
 const viewersSortButton = tableEl.querySelector('th button[data-sort="viewers"]');
@@ -52,12 +61,10 @@ function bindHeaderListeners() {
   viewersSortButton.addEventListener('click', () => currentOnSort?.('viewers'));
 }
 
-/** Fills the crew cell: main-feed "Name [pill]" entries joined by " · " (pbp, analyst, other), plus any selected alt-cast person appended as text (D-08, D-17, CR-04). */
+/** Fills the crew cell: main-feed "Name [pill]" entries in a wrapping list with " · " between people (pbp, analyst, other), plus any selected alt-cast person appended as text (D-08, D-17, CR-04). */
 function buildCrewCell(td, data, state, i) {
   const nodes = [];
-  const sep = () => document.createTextNode(' · ');
   for (const entry of crewEntries(data, i, { mainOnly: true })) {
-    if (nodes.length > 0) nodes.push(sep());
     const name = document.createElement('span');
     name.className = 'crew-name';
     name.textContent = entry.name;
@@ -66,12 +73,11 @@ function buildCrewCell(td, data, state, i) {
   for (const personId of state.people) {
     const personIndex = data.personIndexById.get(personId);
     if (personOnGame(data, i, personIndex, state.role) === 'alt') {
-      if (nodes.length > 0) nodes.push(sep());
       nodes.push(document.createTextNode(`${data.lookups.people[personIndex].name} (alt-cast)`));
     }
   }
   if (nodes.length === 0) td.textContent = 'Crew not recorded';
-  else td.replaceChildren(...nodes);
+  else td.replaceChildren(crewList(nodes));
 }
 
 /** Source cell: the publisher link (or "Original source not recorded"), then Ratings Reference link(s). */
@@ -153,17 +159,18 @@ function buildRow(data, state, onDetails, i) {
   });
 
   const dateTd = document.createElement('td');
-  dateTd.className = 'num';
+  dateTd.className = 'date';
   dateTd.textContent = formatDate(t.date[i]);
   tr.appendChild(dateTd);
 
   const matchupTd = document.createElement('td');
+  matchupTd.className = 'matchup';
   matchupTd.textContent = formatMatchup(data, i, { withScore: true });
   tr.appendChild(matchupTd);
 
   const networkTd = document.createElement('td');
   const net = data.lookups.networks[t.network[i]];
-  networkTd.appendChild(makePill(net.name, net.family, currentTheme()));
+  networkTd.appendChild(networkMark({ id: net.id, name: net.name, family: net.family }));
   tr.appendChild(networkTd);
 
   const crewTd = document.createElement('td');
@@ -173,13 +180,21 @@ function buildRow(data, state, onDetails, i) {
   const viewersTd = document.createElement('td');
   if (data.rated[i]) {
     viewersTd.className = 'num';
-    let viewersText = formatViewers(t.viewers[i]);
+    viewersTd.textContent = formatViewers(t.viewers[i]);
+    // The measurement note sits on its own small line, so the figure keeps the column's
+    // right edge and the note does not widen the column with a " · " suffix (brief §5).
     if (t.measurement_type[i] === 'nielsen_adobe') {
-      viewersText += ` · ${measurementLabel('nielsen_adobe')}`;
+      const note = document.createElement('span');
+      note.className = 'num-note';
+      // The short form keeps the column near the figures' width; the full label is the
+      // note's title and the panel's badge.
+      note.textContent = 'Nielsen + Adobe';
+      note.title = measurementLabel('nielsen_adobe');
+      viewersTd.append(note);
     }
-    viewersTd.textContent = viewersText;
   } else {
-    viewersTd.className = 'no-rating';
+    // A placeholder in a numeric column takes the numbers' alignment (brief §5).
+    viewersTd.className = 'num no-rating';
     viewersTd.textContent = NO_RATING_LABEL;
   }
   tr.appendChild(viewersTd);
@@ -245,6 +260,31 @@ function renderVenueChip({ data, view, state }) {
   venueChipsEl.replaceChildren(li);
 }
 
+/** How the subtitle reads the table's active sort. */
+function sortPhrase(sort) {
+  if (sort.key === 'viewers') return sort.dir === 'desc' ? 'most viewers first' : 'fewest viewers first';
+  return sort.dir === 'desc' ? 'newest first' : 'oldest first';
+}
+
+/**
+ * D-06: the Matched games subtitle names the picked crew and the active sort ("newest
+ * first" when the pick lands); hidden otherwise. textContent only.
+ */
+function renderMatchedSubtitle(data, view, state, sort) {
+  const el = document.getElementById('matched-subtitle');
+  if (!el) return;
+  const names = view.hasCrewSelection ? crewPickNames(data, state) : [];
+  if (names.length === 0) {
+    el.hidden = true;
+    el.textContent = '';
+    el.removeAttribute('title');
+    return;
+  }
+  el.textContent = `Crew: ${names.join(' / ')}, ${sortPhrase(sort)}`;
+  el.title = el.textContent;
+  el.hidden = false;
+}
+
 /**
  * Renders the matched-games table (or its empty state) from the current
  * data/state/view (D-12, SITE-13, SITE-22).
@@ -252,6 +292,7 @@ function renderVenueChip({ data, view, state }) {
  */
 export function renderTable({ data, view, state, sort, onSort, onDetails }) {
   currentOnSort = onSort;
+  renderMatchedSubtitle(data, view, state, sort);
   bindHeaderListeners();
   renderSortHeaders(sort);
 

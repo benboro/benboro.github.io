@@ -21,7 +21,8 @@ import {
   SHARED_SYMBOL,
 } from './palette.js';
 import { MAX_COMPARE } from './select.js';
-import { buildVenueModel, venueDotSize } from './map-venues.js';
+import { crewPickNames } from './format.js';
+import { buildVenueModel } from './map-venues.js';
 import {
   ALBERS_SCALE,
   ALBERS_TRANSLATE,
@@ -131,11 +132,25 @@ function symbolFor(k, count) {
 }
 
 /**
- * D-01/D-02: the picked announcers in pick order, else the School filter's schools,
- * else none. Symbols follow D-05 (circle for a single subject, compare shapes for the
- * first MAX_COMPARE, circles after).
+ * D-01/D-02: the picked crew (Phase 14 D-06: one subject, the Announcers row of the
+ * matrix), else the picked announcers in pick order, else the School filter's schools,
+ * else none. A crew or announcer pick takes precedence over School, so School never
+ * adds games outside the pick. Symbols follow D-05 (circle for a single subject,
+ * compare shapes for the first MAX_COMPARE, circles after).
  */
 export function mapSubjects(data, view, state) {
+  if (view.hasCrewSelection === true && state.crew != null) {
+    const names = crewPickNames(data, state);
+    return [
+      {
+        kind: 'crew',
+        key: `crew:${state.crew}`,
+        label: names.length > 0 ? names.join(' / ') : state.crew,
+        crew: state.crew,
+        symbol: 'circle',
+      },
+    ];
+  }
   const people = (state.people ?? [])
     .map((id) => data.personIndexById.get(id))
     .filter((idx) => idx != null);
@@ -164,6 +179,8 @@ export function mapSubjects(data, view, state) {
 /** Merged indexes of the games a subject appears in, among games passing the filters. */
 export function subjectGames(data, view, subject) {
   const out = [];
+  // A crew's games are exactly computeView's highlighted set (filters, crew match).
+  if (subject.kind === 'crew') return [...view.highlighted];
   if (subject.kind === 'person') {
     for (const i of view.highlighted) {
       const on = view.peopleOnGame.get(i);
@@ -264,11 +281,13 @@ export function buildMapModel(data, view, state) {
 
   // Phase 11 venue model: one dot per venue (D-01), subject shapes (D-04), the selected
   // venue flag (D-05; the venue filter never reaches `passing`, so no dot collapses).
-  // D-03: with announcers picked, the venue model (dots, splat, key, card) is built from
-  // the picked people's games among those passing, exactly computeView's `highlighted`
-  // (role and called-together included), so it rescales with the pick. Venues that
-  // host only other games stay on the map as background dots from the full cohort.
-  const personPick = hasSubject && subjects[0].kind === 'person';
+  // D-03: with announcers (or a crew, Phase 14 D-06) picked, the venue model (dots,
+  // splat, key, card) is built from the picked games among those passing, exactly
+  // computeView's `highlighted` (role and called-together included), so the picked games
+  // decide which venues are cohort dots and their counts. Cohort dot sizes and the key are
+  // relative to the cohort's busiest venue (Phase 17.1 D-20). Venues that host only other
+  // games stay on the map as faded background dots sized on the map without the pick (D-24).
+  const personPick = hasSubject && (subjects[0].kind === 'person' || subjects[0].kind === 'crew');
   const fullVenueModel = buildVenueModel(data, passing, placements);
   const venueModel = personPick
     ? buildVenueModel(
@@ -323,8 +342,8 @@ export function buildMapModel(data, view, state) {
     };
   });
   if (personPick) {
-    // Background venues first, so the picked people's dots draw on top. Their size uses the
-    // picked cohort's scale (capped like any dot), so the two kinds stay comparable.
+    // Background venues first, so the picked people's dots draw on top. They keep their size
+    // from the map without the pick, where its busiest venue is at the max (D-24).
     const inCohort = new Set(venueModel.venues.map((v) => v.index));
     const background = fullVenueModel.venues
       .filter((v) => !inCohort.has(v.index))
@@ -337,7 +356,7 @@ export function buildMapModel(data, view, state) {
         symbol: 'circle',
         leader: v.leader,
         score: v.score,
-        size: venueDotSize(v.score, venueModel.maxScore),
+        size: v.size,
         dotColor: v.dotColor,
         selected: selectedSet.has(v.index),
       }));
@@ -543,7 +562,6 @@ export function venueCard(data, model, key) {
     hasMissingViewers: rows.some((r) => r.viewers == null),
     // A row's Viewers figure adds up its rated games only when some of its games are unrated.
     hasPartialViewers: rows.some((r) => r.partial),
-    hasViewers: rows.some((r) => r.viewers != null),
     subjectLines: subjectLinesFor(data, model, indexes),
   };
 }
