@@ -6,13 +6,12 @@
 <meta name="color-scheme" content="light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="The Broadcast Ledger: An interactive scatter of college football games and their public viewer counts by network, announcer, and matchup quality.">
-<meta name="site-data-version" content="9bafe29715">
+<meta name="site-data-version" content="9791701692">
 <meta name="booth-review-sports" content="cfb,nfl">
-<title>The Broadcast Ledger · college football broadcast crews and viewership</title>
-<link rel="preload" as="script" href="toolbar-fit.js">
+<title>The Broadcast Ledger: college football broadcast crews and viewership</title>
 <link rel="preload" as="font" type="font/woff2" href="fonts/roboto-latin-400-normal.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/roboto-latin-600-normal.woff2" crossorigin>
-<link rel="preload" as="font" type="font/woff2" href="fonts/crimson-text-latin-600-normal.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/lm-roman-demi-latin-600-normal.woff2" crossorigin>
 <script src="theme-init.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -32,39 +31,51 @@
 
 <nav id="toolbar" aria-label="Filters">
   <button type="button" id="filters-button" class="mobile-only" popovertarget="filters-sheet" aria-haspopup="dialog" aria-expanded="false">Filters</button>
-  <ul id="filter-chips" class="filter-chips mobile-only" aria-label="Changed filters" hidden></ul>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-announcers" popovertarget="pop-announcers" aria-haspopup="dialog" aria-expanded="false">Announcers</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-seasons" popovertarget="pop-seasons" aria-haspopup="dialog" aria-expanded="false">Seasons</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-networks" popovertarget="pop-networks" aria-haspopup="dialog" aria-expanded="false">Networks</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-kickoff" popovertarget="pop-kickoff" aria-haspopup="dialog" aria-expanded="false">Kickoff</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-role" popovertarget="pop-role" aria-haspopup="dialog" aria-expanded="false">Role</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-conference" popovertarget="pop-conference" aria-haspopup="dialog" aria-expanded="false">Conference</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-school" popovertarget="pop-school" aria-haspopup="dialog" aria-expanded="false">School</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-postseason" popovertarget="pop-postseason" aria-haspopup="dialog" aria-expanded="false">Bowls/Playoffs</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-game" popovertarget="pop-game" aria-haspopup="dialog" aria-expanded="false">Game</button>
-  <button type="button" class="filter-trigger desktop-only" id="trigger-booth" popovertarget="pop-booth" aria-haspopup="dialog" aria-expanded="false">Booth</button>
+  <div class="fgroup" data-g="broadcast" role="group" aria-labelledby="fgroup-broadcast">
+    <span class="fgroup-label" id="fgroup-broadcast">Broadcast</span>
+    <div class="fgroup-row">
+      <button type="button" class="filter-trigger desktop-only" id="trigger-announcers" popovertarget="pop-announcers" aria-haspopup="dialog" aria-expanded="false">Announcers</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-networks" popovertarget="pop-networks" aria-haspopup="dialog" aria-expanded="false">Networks</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-booth" popovertarget="pop-booth" aria-haspopup="dialog" aria-expanded="false">Booth</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-role" popovertarget="pop-role" aria-haspopup="dialog" aria-expanded="false">Role</button>
+    </div>
+  </div>
+  <div class="fgroup" data-g="matchup" role="group" aria-labelledby="fgroup-matchup">
+    <span class="fgroup-label" id="fgroup-matchup">Matchup</span>
+    <div class="fgroup-row">
+      <button type="button" class="filter-trigger desktop-only" id="trigger-conference" popovertarget="pop-conference" aria-haspopup="dialog" aria-expanded="false">Conference</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-school" popovertarget="pop-school" aria-haspopup="dialog" aria-expanded="false">School</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-game" popovertarget="pop-game" aria-haspopup="dialog" aria-expanded="false">Game</button>
+    </div>
+  </div>
+  <div class="fgroup" data-g="calendar" role="group" aria-labelledby="fgroup-calendar">
+    <span class="fgroup-label" id="fgroup-calendar">Calendar</span>
+    <div class="fgroup-row">
+      <button type="button" class="filter-trigger desktop-only" id="trigger-seasons" popovertarget="pop-seasons" aria-haspopup="dialog" aria-expanded="false">Seasons</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-kickoff" popovertarget="pop-kickoff" aria-haspopup="dialog" aria-expanded="false">Kickoff</button>
+      <button type="button" class="filter-trigger desktop-only" id="trigger-postseason" popovertarget="pop-postseason" aria-haspopup="dialog" aria-expanded="false">Bowls/Playoffs</button>
+    </div>
+  </div>
 </nav>
-<script src="toolbar-fit.js"></script>
 
 <section id="selection-bar" aria-label="Selected announcers and match summary">
-  <div id="selection-row" class="selection-row">
-    <ul id="chips" aria-label="Selected people"></ul>
-
-    <div class="toggle-group">
-      <button type="button" id="compare-toggle" class="toggle" aria-pressed="false" aria-describedby="compare-help" aria-label="Compare people" title="Compare people"><span class="lbl-long">Compare people</span><span class="lbl-short">Compare</span></button>
-      <span id="compare-help" class="visually-hidden">Compare up to 4 people — each gets its own shape.</span>
-      <button type="button" id="together-toggle" class="toggle" aria-pressed="false" aria-describedby="together-help" aria-label="Called together" title="Called together"><span class="lbl-long">Called together</span><span class="lbl-short">Together</span></button>
-      <span id="together-help" class="visually-hidden">Show only games where everyone selected shared the booth.</span>
-      <button type="button" id="clear-selection" aria-label="Clear selection" title="Clear selection"><span class="lbl-long">Clear selection</span><span class="lbl-short">Clear</span></button>
-    </div>
-
-    <button type="button" id="clear-filters" class="clear-all">Clear all filters</button>
-  </div>
-
   <div id="summary" aria-live="polite">
-    <span id="summary-count" class="summary-count"></span>
-    <span id="summary-detail"></span>
-    <span id="compare-note" hidden>Compare mode holds up to 4 people.</span>
+    <div class="sum-left">
+      <span id="summary-count" class="summary-count"></span>
+      <span id="summary-detail"></span>
+      <span id="compare-note" hidden>Compare mode holds up to 4 people.</span>
+    </div>
+    <div class="sum-right">
+      <ul id="chips" aria-label="Selected people"></ul>
+      <div class="toggle-group">
+        <button type="button" id="compare-toggle" class="toggle" aria-pressed="false" aria-describedby="compare-help" aria-label="Compare people" title="Compare people"><span class="lbl-long">Compare people</span><span class="lbl-short">Compare</span></button>
+        <span id="compare-help" class="visually-hidden">Compare up to 4 people — each gets its own shape.</span>
+        <button type="button" id="together-toggle" class="toggle" aria-pressed="false" aria-describedby="together-help" aria-label="Called together" title="Called together"><span class="lbl-long">Called together</span><span class="lbl-short">Together</span></button>
+        <span id="together-help" class="visually-hidden">Show only games where everyone selected shared the booth.</span>
+        <button type="button" id="clear-selection" aria-label="Clear selection" title="Clear selection"><span class="lbl-long">Clear selection</span><span class="lbl-short">Clear people</span></button>
+      </div>
+      <button type="button" id="clear-filters" class="clear-all">Clear all filters</button>
+    </div>
   </div>
 </section>
 
@@ -214,6 +225,7 @@
     <h2 id="filters-sheet-title">Filters</h2>
     <div class="sheet-clear-slot"></div>
   </div>
+  <ul id="filter-chips" class="filter-chips" aria-label="Changed filters"></ul>
   <div class="sheet-body"></div>
   <div class="sheet-footer">
     <button type="button" id="filters-show-results">Show games</button>
@@ -361,7 +373,9 @@
   </div>
 </dialog>
 
-<footer id="site-footer" class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 8 · Viewership through Week 7</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p><p class="trademark-line">Network logos are trademarks of their owners, shown only to identify each network. Their use does not imply endorsement, and they are not covered by this site's MIT license.</p><p class="type-line">Type: <a href="fonts/OFL-crimson-text.txt">Crimson Text</a> (copyright 2010 The Crimson Text Project Authors), <a href="fonts/OFL-roboto.txt">Roboto</a> (copyright 2011 The Roboto Project Authors) and <a href="fonts/OFL-roboto-condensed.txt">Roboto Condensed</a> (copyright 2011 Google Inc.), used under the SIL Open Font License 1.1.</p></footer>
+<footer id="site-footer" class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> <a href="methodology.html">Methodology</a> <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 9; viewership through Week 8</p><p class="credit-line"><span class="credit-item">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data</span>
+<span class="credit-item">Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a></span>
+<span class="credit-item">Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></span></p><p class="trademark-line">Network logos are trademarks of their owners, shown only to identify each network. Their use does not imply endorsement, and they are not covered by this site's MIT license.</p><p class="type-line">Type: <a href="fonts/GUST-FONT-LICENSE.txt">Latin Modern</a> (copyright 2003, 2009 B. Jackowski and J. M. Nowacki), used under the GUST Font License; <a href="fonts/OFL-roboto.txt">Roboto</a> (copyright 2011 The Roboto Project Authors) and <a href="fonts/OFL-roboto-condensed.txt">Roboto Condensed</a> (copyright 2011 Google Inc.), used under the SIL Open Font License 1.1.</p></footer>
 
 <script src="vendor/plotly-partial-4.1.1.min.js" integrity="sha256-vfgIx6Ma01EPTwMGyycg+Zm4OG3i6XzWQAcg90Ab0E0=" crossorigin="anonymous"></script>
 <script type="module" src="app.js"></script>

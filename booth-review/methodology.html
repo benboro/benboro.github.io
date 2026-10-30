@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-3X8cQOj/cXituylxrdSzRHcUA54wd0n/61WoACv9mnQ='; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Methodology · The Broadcast Ledger</title>
+<title>Methodology - The Broadcast Ledger</title>
 <script>(function () {
   var K = 'bl-theme', r = document.documentElement;
   var N = { light: 'Switch to dark theme', dark: 'Switch to light theme' };
@@ -52,9 +52,9 @@ figures on the chart come from.</p>
 <p>Each dot is one rated national telecast of an FBS college football game, from
 the 2014 season onward. The y-axis is viewers, on a log scale, and can show excitement, total points or winning margin instead (see <a href="#the-y-axis-viewers-excitement-points-or-margin">the y-axis section</a>). The x-axis
 defaults to the winner's closing point spread (see below) and can be toggled
-to CFBD's post-game excitement measure or to the game's date instead. Dots are colored by network family —
-for example, the Disney family groups ABC and the ESPN networks under one
-color — but the specific network that carried a telecast is always named in
+to CFBD's post-game excitement measure or to the game's date instead. Dots are colored by network family
+(for example, the Disney family groups ABC and the ESPN networks under one
+color), but the specific network that carried a telecast is always named in
 the hover, the detail panel, and the matched-games table. No dot is ever
 colored by an individual announcer or crew.</p>
 <p>A dot's tooltip is kept short: the matchup and final score, the date and
@@ -67,7 +67,7 @@ x-axis values, any flags, and, for a Saturday game, its time slot.</p>
 this chart: <strong>a person's dots show what game they were assigned to call, not
 how good they are at calling it, and not whether they personally drew
 viewers.</strong> Networks put their most experienced crews on the games they
-already expect to draw the largest audience — the marquee matchup, the
+already expect to draw the largest audience: the marquee matchup, the
 rivalry game, the playoff game. A crew with dots skewed toward large audiences
 is evidence the network trusted them with big assignments; it is not evidence
 that audience showed up <em>because</em> of them.</p>
@@ -82,7 +82,7 @@ of this page's warning. The causal question is out of scope for this release
 and is planned as a future model-driven milestone, not part of this chart.</p>
 <p>The Bars and Butterfly views count assignments, not quality. Every bar is a number of games, never a viewer figure, and announcers are never ranked by audience. Bars are ordered by how many games an announcer, team, network family, or conference has in the current filters, which is a count of assignments, not a ranking of skill. In a stacked bar a game counts once for every announcer (or team) in it, so a bar can be longer than its number of games. Solid parts of a bar are rated games and outlined parts are games with no public rating. One announcer's (or team's) parts stay together in a stacked bar. In a network family bar, the networks named on the family's legend chip take the chip's color and then its shades, in the order the chip lists them (for example ABC, then ESPN), and any other channels follow, most games first.</p>
 <h2 id="which-games-are-included">Which games are included</h2>
-<p>A game is in scope if at least one participating team was FBS that season —
+<p>A game is in scope if at least one participating team was FBS that season:
 a rated FBS-versus-FCS opener counts, but two non-FBS teams playing each
 other does not. Only <strong>rated</strong> telecasts appear as dots: a telecast needs a
 viewership figure this project could attach to it. Unrated games (mostly
@@ -91,9 +91,9 @@ v1, even though their game and crew data still exists behind the scenes.</p>
 <p>Each dot is one main-feed figure. When a game aired on more than one outlet
 at once (a simulcast), it is still one dot, credited to the game's primary
 rights-holder network; every outlet that carried it is listed in the hover
-and detail panel. A combined figure — one viewership number that spans a
+and detail panel. A combined figure (one viewership number that spans a
 main broadcast plus one or more alternate-feed broadcasts, most often seen on
-marquee postseason games with a companion "alt-cast" — is also one dot,
+marquee postseason games with a companion "alt-cast") is also one dot,
 credited to the main booth. The people who called an alt-cast feed on a
 combined figure are still linked to that dot and still match a person search
 (labelled "alt-cast" in the table and detail panel), but they never match a
@@ -133,7 +133,7 @@ and lists the games that pass every filter. Double-clicking (or double-tapping) 
 <li>"no figure found in our 2021–24 sources": the game is from a season in that range, Ratings Reference compiled few figures for those seasons, and the second sources listed under Sources and credits did not cover the game (see Known gaps).</li>
 <li>"no figure was published": anything else. This also covers the rare game whose only figure is for an alternate feed.</li>
 </ol>
-<p>On the site each game reads "No public rating · {cause}".</p>
+<p>On the site each game reads "No public rating; {cause}".</p>
 <p><strong>Counts.</strong> "N rated of M games" counts the games that pass the current filters or selection: N is how many have a figure, M is all of them, rated or not. Filter counts count every game.</p>
 <p><strong>The rarely-rated list.</strong> It is set by hand, one value per network, in <code>data/reference/network_rarity.csv</code>, and never computed from a threshold. Every network in <code>networks.csv</code> has a row, so a newly mapped network forces a review. The build reports only how many networks have an actual rated share that contradicts their flag, so the list stays auditable.</p>
 <p><strong>Where they appear.</strong> With the y-axis on Viewers, these games sit in the "No public rating" strip under the plot as hollow rings when no filter is active, and for games that fail the filters. With the y-axis on Excitement, they are filled dots at their excitement value like every other game. On Points and Margin every game is a filled dot at its value, and the strip holds only games with no final score. When passing games are drawn larger (see Dot size above), the unrated games that pass are drawn like rated dots, and a selected announcer's games use the same shapes as their rated games; otherwise they stay hollow rings on Viewers. In Bars, each bar's outlined part counts them.</p>
@@ -141,10 +141,10 @@ and lists the games that pass every filter. Double-clicking (or double-tapping) 
 <p>Nielsen, the source of nearly every viewership figure on this chart, changed
 how it measures television audiences several times across this project's
 2014-onward range. Comparing a raw viewership number from one era against
-another without accounting for this is misleading — a level shift from a
+another without accounting for this is misleading, since a level shift from a
 methodology change can look like a change in real audience interest. Every
 dot's detail panel shows which era its figure falls under.</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Era</th>
@@ -185,26 +185,26 @@ dot's detail panel shows which era its figure falls under.</p>
 <td><a href="https://frontofficesports.com/article/nielsen-co-viewing-currency/">frontofficesports.com</a></td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>Because each of these changes tends to shift viewership levels upward (out-of-home
 and co-viewing measurement both count audiences that panel-only Nielsen
 measurement missed), a season-over-season or era-over-era comparison of raw
 viewership numbers needs this context. This chart does not attempt to correct
-older figures onto a later era's basis — every figure is shown as originally
+older figures onto a later era's basis; every figure is shown as originally
 published, tagged with its own era.</p>
 <p>Separate from measurement eras, a small number of telecasts carry an event
 flag for a one-off circumstance that affected their audience. One such flag
 on this chart marks telecasts that aired while Disney's networks (including
 ABC and the ESPN networks) were in a carriage dispute with YouTube TV, from
-October 31, 2025 through November 14, 2025 — see
+October 31, 2025 through November 14, 2025; see
 <a href="https://www.espn.com/espn/story/_/id/46969585/disney-reaches-new-deal-youtube-tv-ending-blackout">the reporting on the resolved dispute</a>
 for background. A telecast carrying this flag may show depressed viewership
 on the affected platform for reasons unrelated to the matchup or the crew.</p>
 <h3 id="nielsen-adobe-streaming-figures">Nielsen + Adobe (streaming) figures</h3>
 <p>Some viewership figures on this chart blend Nielsen's linear-television
 measurement with streaming-analytics data from Adobe, rather than reporting
-Nielsen alone. These dots look exactly like every other dot on the chart —
-same size, same color, same behavior under every filter — but their detail
+Nielsen alone. These dots look exactly like every other dot on the chart
+(same size, same color, same behavior under every filter), but their detail
 panel and matched-games table row label them "Nielsen + Adobe (streaming)."
 Because this figure type mixes two different measurement approaches, it is not strictly
 comparable to a Nielsen-only figure, even within the same era, and should be
@@ -222,7 +222,7 @@ an excitement value from an earlier season, even though both are reported on
 the same numeric scale. Every telecast from the 2025 season onward carries
 this flag in its detail panel, and when the chart's x-axis is set
 to excitement mode, a caption appears under the axis noting the break. The caption shows whenever excitement is on either axis.
-Affected dots look identical to any other dot — the flag is informational
+Affected dots look identical to any other dot; the flag is informational
 only and never changes a dot's size, color, or shape.</p>
 <h2 id="the-x-axis-spread-excitement-and-date">The x-axis: spread, excitement, and date</h2>
 <p>The chart's x-axis can show one of three options. Two are different measures
@@ -412,7 +412,7 @@ data from other sources, and reshaped for this chart, rather than reproduced
 as published. Every dot's detail panel links the specific Ratings Reference
 record (or records, when more than one record was merged for the same
 telecast) that its figure came from, along with that figure's own original
-source — the article, wire report, or post the number was first published
+source: the article, wire report, or post the number was first published
 in.</p>
 <p><strong>Sports Media Watch and the other viewership sources.</strong> Ratings Reference
 compiled few figures for the 2021–2024 seasons, so for those seasons this
@@ -462,7 +462,7 @@ Awful Announcing and ESPN Press Room it is the exact post or release. The
 detail panel also says the
 figure is not listed on Ratings Reference. These sources are used without
 asking first, and a source's figures come off the site if it objects.</p>
-<p><strong>506 Sports.</strong> Crew listings — who called each telecast — come from
+<p><strong>506 Sports.</strong> Crew listings (who called each telecast) come from
 <a href="https://506sports.com">506sports.com</a>.</p>
 <p>Crews come from 506 Sports, except a small set of telecasts 506 never lists,
 including every College Football Playoff national championship. For those, the
@@ -490,11 +490,11 @@ self-hosted alongside this site's other files.</p>
 <p><strong>NFL.</strong> The NFL view draws on four sources. Schedules and the win-probability-derived measures come from <a href="https://nflverse.com">nflverse</a>, published under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; this use is modified, because the data is derived and joined with crew and viewership data. NFL viewership comes from <a href="https://ratingsreference.com">RatingsReference.com</a>, also CC BY 4.0 and modified; each detail panel links the Ratings Reference record and the figure's original source. Scheduling changes, meaning the original slot and network of flexed games, come from <a href="https://www.wikipedia.org">Wikipedia</a>, with the article linked, and are licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>. Crews and networks come from <a href="https://506sports.com">506 Sports</a>, on the same terms as college football. The NFL view also offers no bulk download and loads nothing from any source when you view it.</p>
 <p>This site offers no bulk download of any of the data above, and it loads no
 data from Ratings Reference, 506 Sports, CollegeFootballData.com, or any
-other outside source at the time you view it — every figure shown here was
+other outside source at the time you view it. Every figure shown here was
 gathered and assembled ahead of time, before the page was built.</p>
 <h2 id="known-gaps">Known gaps</h2>
 <p>This project's coverage of 2014-onward college football telecasts has some
-known thin spots and edge cases — where a source's own records are uneven,
+known thin spots and edge cases: where a source's own records are uneven,
 where a match between two sources could not be made with full confidence, or
 where a figure combines more than one broadcast feed. See
 <a href="#known-gaps">Known gaps</a> for the details, in the project's own words and
@@ -503,13 +503,13 @@ with counts only.</p>
 project's coverage of 2014–2025 college football telecasts is thin or
 uneven. It exists so a reader of the chart understands what "every rated
 telecast" actually means before comparing two seasons, two networks, or two
-announcers. No specific game, crew, or figure is named here — see
+announcers. No specific game, crew, or figure is named here; see
 <code>docs/sources/506.md</code>, <code>docs/sources/ratings-reference.md</code>,
 <code>docs/sources/smw.md</code>, <code>docs/sources/tvrg.md</code>, <code>docs/sources/aa.md</code>, <code>docs/sources/espnpr.md</code>, and <code>docs/sources/cfbd.md</code> for source-level detail, and <code>docs/site-data.md</code> for
 how these tables reach the chart.</p>
 <h3 id="scope">Scope</h3>
 <p>The chart covers games from the 2014 season onward where at least one team
-was FBS that season (JOIN-07) — a rated FBS-vs-FCS opener counts, two
+was FBS that season (JOIN-07): a rated FBS-vs-FCS opener counts, two
 non-FBS teams playing each other does not. Only <strong>rated</strong> telecasts (a
 telecast with a Ratings Reference viewership figure or, for 2021–2024, one
 from a second source such as Sports Media Watch) appear as dots; unrated games are not shown in v1, though the data behind
@@ -542,7 +542,7 @@ passed the same 3% check with no disagreement (Awful Announcing's 2024 posts
 share none). Most of their game figures repeat a game Ratings Reference or
 Sports Media Watch already rated: The TV Ratings Guide adds 16 headlines, and
 Awful Announcing none.</p>
-<table>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Season</th>
@@ -592,7 +592,7 @@ Awful Announcing none.</p>
 <td>450</td>
 </tr>
 </tbody>
-</table>
+</table></div>
 <p>One 2024 telecast's Ratings Reference record has only a peak figure, which is
 never a headline, so its Sports Media Watch figure is the headline instead.</p>
 <p>So 2021–2024 figures come from a mix of sources, and they count the same as
@@ -623,17 +623,17 @@ these seasons, its refresh picks them up and they become the headline.</p>
 <p>These games now appear in the 'No public rating' strip, and the counts read 'N rated of M games'.</p>
 <h3 id="506-sports-hand-saved-pages-and-a-small-number-of-empty-weeks">506 Sports: hand-saved pages and a small number of empty weeks</h3>
 <p>506sports.com blocks this project's automated, correctly-identified,
-robots-respecting client, so every 506 page in this project's vault —
-2014–2024 backfill and the 2025 season alike — was saved by hand in a
+robots-respecting client, so every 506 page in this project's vault
+(2014–2024 backfill and the 2025 season alike) was saved by hand in a
 browser and imported, never fetched live (<code>docs/sources/506.md</code>,
 <code>AGENTS.md</code>). Ten season-level cells, spanning 2014–2023, were waived at the
 2014–2025 freeze because the season's own saved pages show the site had no
-games to list that week (a structurally empty page, not a bad save) — the
+games to list that week (a structurally empty page, not a bad save). The
 freeze recorded exactly which ten and why, and no other 506 gap was waived.
 Separately, a small share of 506 listings carry no announcing crew at all
 (mostly smaller-audience and streaming-only games); those telecasts, when
-otherwise rated, are counted as coverage gaps rather than silently dropped
-— see the crew-match rate below. During the season, crews for the newest
+otherwise rated, are counted as coverage gaps rather than silently dropped;
+see the crew-match rate below. During the season, crews for the newest
 week appear once its 506 pages are saved by hand and imported. Until then those
 dots read "Crew not listed", and the "crews through week N" stamp shows how
 far crews reach.</p>
@@ -702,7 +702,7 @@ after this review; they remain documented disagreements.</p>
 <h3 id="combined-figures-are-identified-by-review-not-by-a-source-flag">Combined figures are identified by review, not by a source flag</h3>
 <p>Ratings Reference's schema has fields (<code>composite_of</code>, <code>carrier_network</code>)
 meant to mark a figure that combines viewership across simulcast feeds (a
-MegaCast or a title game with alt-casts) — but across every claim in this
+MegaCast or a title game with alt-casts), but across every claim in this
 project's 2014–2025 range, neither field was ever populated. A combined
 figure is real (a title game's audience genuinely spans a main network and
 one or more alt-casts), it just isn't self-declared in the source data. This
@@ -720,7 +720,7 @@ documented minimum of 2, not an exact tally.</p>
 this project's range, coarser than the five dated measurement eras this
 project tracks (Nielsen panel-only, panel-plus-out-of-home, the February
 2025 out-of-home expansion, Nielsen's Big Data + Panel switch, and the
-planned 2026 co-viewing addition) — two of this project's five eras share
+planned 2026 co-viewing addition): two of this project's five eras share
 one <code>era_id</code> value because Ratings Reference doesn't distinguish them, and a
 handful of claims carry an <code>era_id</code> that looks like it reflects when the
 figure was reported or revised rather than when the game aired. Because of
@@ -733,7 +733,7 @@ Ratings Reference does not mark every record with a current-figure pick:
 roughly 18% of records in this project's range carry no such marker at all
 (no "peers" block to compare claims against), so this project's own
 headline-figure-vs-Ratings-Reference-current-pick agreement check is not
-comparable for that share of records — it is skipped, not counted as either
+comparable for that share of records; it is skipped, not counted as either
 agreement or disagreement.</p>
 <h3 id="cfbd-excitement-the-2025-model-change-media-rows-and-rankings">CFBD: excitement, the 2025 model change, media rows, and rankings</h3>
 <p>CFBD's <code>excitementIndex</code> is null far more often on CFBD's own all-division
@@ -744,7 +744,7 @@ win-probability model partway through the 2025 season without backfilling
 earlier seasons, so this project flags every 2025-and-later telecast rather
 than treating excitement as directly comparable across the whole 2014–2025
 span (<code>FLAG-04</code>). CFBD's own media rows don't cover every game a network
-actually carried — 506 Sports, not CFBD, is this project's source for which
+actually carried; 506 Sports, not CFBD, is this project's source for which
 network aired a game. Postseason games take their rank from the last
 regular-season poll available, not a postseason "final" poll CFBD only
 publishes after the bowls are already played (so it was never the ranking
@@ -765,6 +765,8 @@ These games now appear in the 'No public rating' strip, and the counts read 'N r
 <p>506 Sports lists crews for regional Fox and CBS games but rarely for national NBC, ESPN/ABC, Amazon and NFL Network games. Games with no listed crew do not appear in the Crews table. Cited published lineups fill only the flagship-window games of seasons with a cited release, so other national games stay without a crew. See <a href="https://github.com/benboro/booth-review/blob/main/docs/methodology.md#nfl-published-lineups">NFL: Published lineups</a>.</p>
 <h3 id="nfl-regional-sunday-afternoon-games-have-no-published-figure">NFL: regional Sunday-afternoon games have no published figure</h3>
 <p>Ratings Reference compiles national windows, so regional Sunday-afternoon games (outside Fox AGOTW and CBS late national) have no figure of their own. They read "No public rating" and stay out of every viewers average, while the window-level figures cover every game in their window. See <a href="https://github.com/benboro/booth-review/blob/main/docs/methodology.md#nfl-window-level-viewership">NFL: Window-level viewership</a>.</p></main>
-<footer class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> · <a href="methodology.html">Methodology</a> · <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 8 · Viewership through Week 7</p><p class="credit-line">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data · Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a> · Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></p><p class="trademark-line">Network logos are trademarks of their owners, shown only to identify each network. Their use does not imply endorsement, and they are not covered by this site's MIT license.</p><p class="type-line">Type: <a href="fonts/OFL-crimson-text.txt">Crimson Text</a> (copyright 2010 The Crimson Text Project Authors), <a href="fonts/OFL-roboto.txt">Roboto</a> (copyright 2011 The Roboto Project Authors) and <a href="fonts/OFL-roboto-condensed.txt">Roboto Condensed</a> (copyright 2011 Google Inc.), used under the SIL Open Font License 1.1.</p></footer>
+<footer class="site-footer"><nav aria-label="Site"><a href="index.html">Chart</a> <a href="methodology.html">Methodology</a> <a href="coverage.html">Coverage</a></nav><p class="freshness">Crews and scores through Week 9; viewership through Week 8</p><p class="credit-line"><span class="credit-item">Viewership: <a href="https://ratingsreference.com" rel="noopener noreferrer">RatingsReference.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener noreferrer">CC BY 4.0</a>), modified: filtered and joined with crew and game data</span>
+<span class="credit-item">Crews: <a href="https://506sports.com" rel="noopener noreferrer">506 Sports</a></span>
+<span class="credit-item">Data provided by <a href="https://collegefootballdata.com" rel="noopener noreferrer">CollegeFootballData.com</a></span></p><p class="trademark-line">Network logos are trademarks of their owners, shown only to identify each network. Their use does not imply endorsement, and they are not covered by this site's MIT license.</p><p class="type-line">Type: <a href="fonts/GUST-FONT-LICENSE.txt">Latin Modern</a> (copyright 2003, 2009 B. Jackowski and J. M. Nowacki), used under the GUST Font License; <a href="fonts/OFL-roboto.txt">Roboto</a> (copyright 2011 The Roboto Project Authors) and <a href="fonts/OFL-roboto-condensed.txt">Roboto Condensed</a> (copyright 2011 Google Inc.), used under the SIL Open Font License 1.1.</p></footer>
 </body>
 </html>

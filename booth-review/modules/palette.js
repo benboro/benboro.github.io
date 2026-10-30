@@ -102,10 +102,11 @@ export const PILL_TEXT_COLOR = {
  * @type {{light: Record<string, string>, dark: Record<string, string>}}
  */
 export const FAMILY_COLORS = {
+  // Light FOX and CBS are the map-family values (Phase 26 panel F4): 3:1 or more on SURFACE.light.
   light: {
     disney: '#0072B2',
-    fox: '#009E73',
-    cbs: '#B77F00',
+    fox: '#009970',
+    cbs: '#B37C00',
     nbc: '#C972A2',
     cw: '#1D96DB',
     wbd: '#D55E00',
@@ -125,28 +126,28 @@ export const FAMILY_COLORS = {
 };
 
 /** UI chrome accent token per theme (search focus ring, active states, highlight outline). */
-export const ACCENT = { light: '#23201B', dark: '#ECE7DF' };
+export const ACCENT = { light: '#1E2321', dark: '#E5EAE8' };
 
 /** The --ink text token per theme: neutral marks and unmatched bar fills (D-04). */
-export const INK = { light: '#23201B', dark: '#ECE7DF' };
+export const INK = { light: '#1E2321', dark: '#E5EAE8' };
 
 /** Outline on enlarged (filter-passing) dots: black on light, ink on dark so it stays visible (D-08). */
-export const DOT_OUTLINE = { light: '#000000', dark: '#ECE7DF' };
+export const DOT_OUTLINE = { light: '#000000', dark: '#E5EAE8' };
 
 /** Result-vs-spread zero line: a step darker than DIVIDER gridlines, lighter than MUTED text (D-02). */
-export const ZERO_LINE = { light: '#CFC6B6', dark: '#5A554D' };
+export const ZERO_LINE = { light: '#C0C9C5', dark: '#56605C' };
 
 /** UI chrome divider/border token per theme. */
-export const DIVIDER = { light: '#E4DDD1', dark: '#3A3632' };
+export const DIVIDER = { light: '#DAE0DD', dark: '#333A38' };
 
 /**
  * Faint gold/brown tint behind each season's bowl and playoff span on the Date axis
- * (04.17 D-07). Light alpha must stay at or below 0.10 for CBS/Other contrast. Dark alpha
- * 0.07 (Phase 17 review F4, was 0.12) keeps every dark family at 3:1 or more on the band
- * over SURFACE (the "No public rating" strip, #322C21, Disney 3.04:1) and over PAGE_BG
- * (#2A241B, Disney 3.37:1).
+ * (04.17 D-07). Light alpha 0.05 (was 0.07 before the green-gray ground) keeps CBS and Other
+ * at 3:1 or more on the band over PAGE_BG (#F5F7F6; CBS 3.06:1, Other 3.01:1). Dark alpha 0.06
+ * (was 0.07) keeps every dark family at 3:1 or more on the band over SURFACE (the "No public
+ * rating" strip, #212625; Disney 3.05:1) and over PAGE_BG (#191D1C; Disney 3.39:1).
  */
-export const POSTSEASON_BAND = { light: 'rgba(166, 120, 40, 0.07)', dark: 'rgba(212, 160, 60, 0.07)' };
+export const POSTSEASON_BAND = { light: 'rgba(166, 120, 40, 0.05)', dark: 'rgba(212, 160, 60, 0.06)' };
 
 /**
  * "Bowls & CFP" label text: a darker tint of the band hue on light, a lighter one on dark
@@ -155,25 +156,25 @@ export const POSTSEASON_BAND = { light: 'rgba(166, 120, 40, 0.07)', dark: 'rgba(
 export const POSTSEASON_LABEL = { light: '#6E4A10', dark: '#E8BE6E' };
 
 /** UI chrome page background token per theme. */
-export const PAGE_BG = { light: '#FBF9F5', dark: '#1D1B18' };
+export const PAGE_BG = { light: '#F5F7F6', dark: '#191D1C' };
 
 /** UI chrome secondary-surface token per theme (rail, top bar, panel, table header). */
-export const SURFACE = { light: '#F4F0E8', dark: '#26231F' };
+export const SURFACE = { light: '#EBEFED', dark: '#212625' };
 
 /** The --muted text token per theme (axis ticks and zero lines; not a bar fill). */
-export const MUTED = { light: '#6A6358', dark: '#A59E94' };
+export const MUTED = { light: '#5A6460', dark: '#9EA8A4' };
 
 /**
  * Map land fill per theme (04.18 D-08, UI-SPEC "Color"): barely off the page background so
  * the states read as a faint base. DEFAULTED pending the user's close-out sign-off.
  */
-export const MAP_LAND = { light: '#F1EDE4', dark: '#2A2722' };
+export const MAP_LAND = { light: '#E8EDEA', dark: '#242A28' };
 
 /**
  * Map state outline per theme (04.18 D-08, UI-SPEC "Color"): muted, one step darker than
  * the land on light and lighter on dark. DEFAULTED pending the user's close-out sign-off.
  */
-export const MAP_OUTLINE = { light: '#C4C9D1', dark: '#4A453E' };
+export const MAP_OUTLINE = { light: '#BCC6C2', dark: '#46504D' };
 
 /** Edge-marker label text (04.18 D-15): the muted token, aliased so the Map can tune it alone. */
 export const MAP_MARKER_LABEL = MUTED;
@@ -220,14 +221,39 @@ export const MAP_SIZE = Object.freeze({
   marker: 9,
 });
 
+/** Non-text mark contrast every map family colour holds against the land (Phase 24 UI-SPEC). */
+const MAP_MARK_MIN_CONTRAST = 3.0;
+
+/**
+ * Each family colour mixed toward black, in 1% steps, until it holds `MAP_MARK_MIN_CONTRAST`
+ * against `land`; a colour that already passes comes back unchanged (hue identity is kept, only
+ * lightness drops). Phase 24: the weekend map's dots must clear 3:1 on the land.
+ * @param {Record<string, string>} colors
+ * @param {string} land
+ * @returns {Record<string, string>}
+ */
+function deepenFamilies(colors, land) {
+  const out = {};
+  for (const [family, hex] of Object.entries(colors)) {
+    let tone = hex;
+    for (let w = 100; w >= 0 && contrastRatio(tone, land) < MAP_MARK_MIN_CONTRAST; w -= 1) {
+      tone = mixHex(hex, '#000000', w / 100);
+    }
+    out[family] = tone;
+  }
+  return out;
+}
+
 /**
  * Map-only family colors (Phase 11 D-12): the same hues as FAMILY_COLORS except
  * `conference`, which is a violet so Pac-12 Net / MW Net would not smudge the splat in pure black.
  * @type {{light: Record<string, string>, dark: Record<string, string>}}
  */
 export const MAP_FAMILY_COLORS = {
-  light: Object.freeze({ ...FAMILY_COLORS.light, conference: '#6A5BA0' }),
-  dark: Object.freeze({ ...FAMILY_COLORS.dark, conference: '#9A8CD0' }),
+  light: Object.freeze(
+    deepenFamilies({ ...FAMILY_COLORS.light, conference: '#6A5BA0' }, MAP_LAND.light),
+  ),
+  dark: Object.freeze(deepenFamilies({ ...FAMILY_COLORS.dark, conference: '#9A8CD0' }, MAP_LAND.dark)),
 };
 
 /** Warm neutral a venue dot fades toward as its games split evenly (Phase 11 D-01a). */
@@ -272,7 +298,43 @@ export const MAP_VENUE_DOT = Object.freeze({
 });
 
 /** Map line widths in px (04.18 D-08/D-13/D-15, UI-SPEC "Mark tiers"). */
-export const MAP_LINE_WIDTH = Object.freeze({ outline: 0.6, leg: 1.25, marker: 1.5, subjectOutline: 1 });
+export const MAP_LINE_WIDTH = Object.freeze({
+  outline: 0.6,
+  leg: 1.25,
+  marker: 1.5,
+  subjectOutline: 1,
+  dotKeyline: 1.5,
+});
+
+/**
+ * Weekend map dot tuning (Phase 24 UI-SPEC "Window shape"): optical bounding size in px per
+ * Plotly symbol so the five marks carry equal visual weight, the invisible hit size, and the
+ * ring offsets (keyline and ink rings sit above matched dots, the hover ring is the half-weight
+ * 1px ring).
+ */
+export const WEEKEND_MAP_DOT = Object.freeze({
+  desktop: Object.freeze({ circle: 12, square: 10, diamond: 14, 'triangle-up': 13, 'circle-open': 12 }),
+  phone: Object.freeze({ circle: 10, square: 8, diamond: 12, 'triangle-up': 11, 'circle-open': 10 }),
+  hitDiameter: MAP_VENUE_DOT.hitDiameter,
+  keyline: 1.5,
+  tbaStroke: 2,
+  keylineRing: Object.freeze({ offset: 6, width: 3 }),
+  inkRing: Object.freeze({ offset: 10, width: 2 }),
+  hoverRing: Object.freeze({ offset: 8, width: 1 }),
+});
+
+/**
+ * Splat overrides for the weekend map (Phase 24 D-02): one game weighs 1 (no viewers), and the
+ * shading stays light because the dots are the data. 24-11 tunes `spread`, `solidPercentile`
+ * and `maxAlpha` in the critique renders, `maxAlpha` only within 0.3 to 0.5.
+ */
+export const MAP_SPLAT_WEEKEND = Object.freeze({
+  viewersWeight: 0,
+  maxAlpha: 0.4,
+  spread: 25,
+  solidPercentile: 80,
+});
+
 
 /**
  * The matched-state accent (D-04), mirroring the `--accent` CSS token. Unmatched marks read
