@@ -7,6 +7,7 @@
 
 import { networkMark } from './network.js';
 import { makeRolePill, nameWithRoles } from './pill.js';
+import { venueTitle } from './venue.js';
 
 /**
  * Returns `url` unchanged when it parses as an `http:`/`https:` URL, else
@@ -40,6 +41,20 @@ export function externalLink(href, text) {
   return a;
 }
 
+/**
+ * A text run for a modal line that lays out with flex (Phase 28, sketch 008). A flex
+ * container drops the leading and trailing spaces of its text items, so each run sits in a
+ * `span.panel-mark-text` that keeps its spaces ("Network: ", "; also on: ").
+ * @param {string} text
+ * @returns {HTMLSpanElement}
+ */
+export function markText(text) {
+  const span = document.createElement('span');
+  span.className = 'panel-mark-text';
+  span.textContent = text;
+  return span;
+}
+
 /** Networks paragraph: "Network: " + a network mark for `primary`, then
  * "Also on: " + a mark per entry of `others` (SITE-05). `primary` and `others`
  * items are `{ id?, name, family }`; an item without an id (or without a
@@ -49,12 +64,12 @@ export function externalLink(href, text) {
 export function networksParagraph({ primary, others = [] }) {
   const p = document.createElement('p');
   p.className = 'panel-networks';
-  p.appendChild(document.createTextNode('Network: '));
+  p.appendChild(markText('Network: '));
   p.appendChild(networkMark(primary));
   if (others.length > 0) {
-    p.appendChild(document.createTextNode('; also on: '));
+    p.appendChild(markText('; also on: '));
     others.forEach((net, pos) => {
-      if (pos > 0) p.appendChild(document.createTextNode(' '));
+      if (pos > 0) p.appendChild(markText(' '));
       p.appendChild(networkMark(net));
     });
   }
@@ -119,4 +134,22 @@ export function liveOpener(el) {
   const id = el.dataset?.wkId;
   if (!id) return null;
   return [...document.querySelectorAll('[data-wk-id]')].find((n) => n.dataset.wkId === id) ?? null;
+}
+
+/**
+ * The modal's location line under the date, "AT&T Stadium, Arlington, TX", with
+ * " (neutral site)" after it when `neutral`; null when the game has no venue. Shared by the
+ * CFB and NFL modals. Text only, so a venue name never becomes markup.
+ * @param {{name?: string, city?: string, state?: string, country?: string}|null} venue
+ * @param {boolean} neutral
+ * @returns {HTMLParagraphElement|null}
+ */
+export function locationLine(venue, neutral) {
+  if (venue == null) return null;
+  const where = venueTitle(venue);
+  if (!where) return null;
+  const p = document.createElement('p');
+  p.className = 'panel-location';
+  p.textContent = neutral ? `${where} (neutral site)` : where;
+  return p;
 }

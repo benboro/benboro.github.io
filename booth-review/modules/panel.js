@@ -25,6 +25,7 @@ import {
   boothLabel,
   formatMatchup,
   formatViewersProse,
+  matchupParts,
   gameTypeInfo,
   rivalryName,
   measurementLabel,
@@ -32,10 +33,15 @@ import {
   selectedPersonIndexes,
   showsTimeSlot,
 } from './format.js';
+import { conferenceMark } from './conf-logos.js';
 import { makeGameTypeIcon } from './icons.js';
 import { currentTheme } from './pill.js';
-import { crewBox, externalLink, linksList, liveOpener, networksParagraph } from './panel-parts.js';
+import {
+  crewBox, externalLink, linksList, liveOpener, locationLine, markText, networksParagraph,
+} from './panel-parts.js';
 import { sortNetworks } from './network.js';
+import { bothRanked, rankBadge } from './rank-badge.js';
+import { joinerBreakNodes, syncBadgeWrap, watchBadgeWrap } from './matchup-wrap.js';
 import { personOnGame } from './select.js';
 import { scheduledFacade } from './weekend-data.js';
 import { apKickoff } from './weekend.js';
@@ -281,15 +287,101 @@ function buildRivalryLine(name) {
 }
 
 /**
+ * Writes the modal title with each rank as a superscript and no "#" (notes 2026-11-02): the
+ * title's large serif makes a full-size "#7" read as part of the name. Text nodes only, never
+ * markup, so a team name is always plain text. The aria-label keeps the spoken "#7" form,
+ * since a bare superscript would read as "7Michigan State".
+ * @param {HTMLElement} titleEl
+ * @param {object} data - a `prepareData` result.
+ * @param {number} i - telecast index.
+ */
+export function renderMatchupTitle(titleEl, data, i) {
+  const parts = matchupParts(data, i, { withScore: true });
+  const side = (nodes, { rank, team, score }) => {
+    if (rank != null) {
+      const sup = document.createElement('sup');
+      sup.className = 'title-rank';
+      sup.textContent = String(rank);
+      nodes.push(sup);
+    }
+    nodes.push(document.createTextNode(score != null ? `${team} ${score}` : team));
+    return nodes;
+  };
+  const away = side([], parts.away);
+  // A wrapping title breaks before its joiner (2026-11-03): the joiner, the home side and the
+  // badge share one inline-block after the away side (matchup-wrap.js).
+  const nodes = side([document.createTextNode(`${parts.separator} `)], parts.home);
+  // Phase 28 (D-01, D-04): a both-ranked game ends the title with the ranked badge; the
+  // title's aria-label carries the sentence, so the badge itself is aria-hidden. Only the CFB
+  // modal reaches here (NFL and MLB have their own panels), and data without rank columns
+  // never shows it.
+  const ranked = bothRanked(data.t.away_rank?.[i], data.t.home_rank?.[i]);
+  if (ranked) {
+    // The title's last word and the badge share a no-wrap span, so a narrow modal never leaves
+    // the badge alone on a line of its own.
+    const last = nodes.pop();
+    const text = last.textContent;
+    const cut = text.lastIndexOf(' ') + 1;
+    if (cut > 0) nodes.push(document.createTextNode(text.slice(0, cut)));
+    const glue = document.createElement('span');
+    glue.className = 'rk-glue';
+    glue.append(document.createTextNode(text.slice(cut)), rankBadge({ hidden: true }));
+    nodes.push(glue);
+  }
+  titleEl.replaceChildren(...joinerBreakNodes(away, nodes));
+  // A wrapped title moves its badge to the right, centred on the lines (matchup-wrap.js).
+  watchBadgeWrap(titleEl);
+  const label = formatMatchup(data, i, { withScore: true });
+  // A matchup usually ends without a full stop, so the sentence gets one first: screen readers
+  // pause only at punctuation, and "34 Both" would otherwise run into the score.
+  const stop = /[.!?]$/.test(label) ? '' : '.';
+  titleEl.setAttribute('aria-label', ranked ? `${label}${stop} Both teams ranked.` : label);
+}
+
+/**
+ * The modal's Conference line (D-12, D-13): "Conference: [logo] vs. [logo]", each logo for the
+ * game's season (D-09), a side without a logo as its name in text (D-11), a side with no
+ * conference as "Not recorded" (conferenceLine's wording), and one mark when both teams share
+ * a conference. Names enter the DOM only through conferenceMark (a Text node, or an img whose
+ * alt and title are set as properties) and text nodes, never as markup (T-28-14).
+ * @param {object} data - a `prepareData` result.
+ * @param {number} i - telecast index.
+ * @returns {HTMLParagraphElement}
+ */
+function buildConferencesParagraph(data, i) {
+  const t = data.t;
+  const season = t.season?.[i] ?? null;
+  const nameOf = (idx) => (idx != null ? (data.lookups.conferences[idx]?.name ?? null) : null);
+  const mark = (name) => (name != null ? conferenceMark(name, season) : document.createTextNode('Not recorded'));
+  const away = nameOf(t.away_conference[i]);
+  const home = nameOf(t.home_conference[i]);
+  const line = document.createElement('span');
+  line.className = 'cf-line';
+  if (away != null && away === home) {
+    line.append(mark(away));
+  } else {
+    const sep = document.createElement('span');
+    sep.className = 'cf-sep';
+    sep.textContent = 'vs.';
+    line.append(mark(away), sep, mark(home));
+  }
+  const p = document.createElement('p');
+  p.className = 'panel-conferences';
+  p.append(markText('Conference: '), line);
+  return p;
+}
+
+/**
  * Renders the full detail-panel body for telecast `i` into `bodyEl`, and
  * its title into `titleEl` (SITE-05, D-02, D-04, D-07, D-08, D-16). Pure DOM
  * update -- safe to call again for a different `i` while the panel is
  * already open (D-10 swap), or to refresh the currently open panel after a
  * selection changes elsewhere in the app.
  * Game type (D-20, D-21): a bowl game (or CFP quarterfinal/semifinal) shows
- * its named bowl line first, then a "[trophy] CFP round" line; a named bowl
- * replaces "Neutral site". A named rivalry (04.10 D-11) shows its own line and
- * never suppresses "Neutral site".
+ * its named bowl line first, then a "[trophy] CFP round" line. The location line
+ * ("AT&T Stadium, Arlington, TX") sits right under the date for any game with a venue; a
+ * neutral-site game adds " (neutral site)" unless a named bowl line shows. A named rivalry
+ * (04.10 D-11) shows its own line and never suppresses the neutral-site note.
  * D-39: an empty crew reads "Crew not recorded" (the missing crews themselves are
  * a data-join issue, out of scope: see the championship-crews todo); the
  * Nielsen+Adobe label shows once (the badge) and combined feeds show as one line.
@@ -301,7 +393,7 @@ function buildRivalryLine(name) {
  */
 export function renderPanel(bodyEl, titleEl, { data, i, state, view, unplayed = false, weekend = false }) {
   const t = data.t;
-  titleEl.textContent = formatMatchup(data, i, { withScore: true });
+  renderMatchupTitle(titleEl, data, i);
 
   const children = [];
 
@@ -312,38 +404,34 @@ export function renderPanel(bodyEl, titleEl, { data, i, state, view, unplayed = 
   const gameType = gameTypeInfo(data, i);
   const bowlIdx = t.bowl?.[i] ?? null;
   const bowl = bowlIdx != null ? (data.lookups.bowls?.[bowlIdx] ?? null) : null;
+  const typeLines = [];
   let namedBowlLine = false;
   if (gameType != null && (gameType.kind === 'bowl' || gameType.atBowl)) {
     if (bowl) {
-      children.push(buildBowlLine(bowl));
+      typeLines.push(buildBowlLine(bowl));
       namedBowlLine = true;
     } else {
-      children.push(buildLabelLine('bowl', 'Bowl'));
+      typeLines.push(buildLabelLine('bowl', 'Bowl'));
     }
   } else if (bowl) {
-    children.push(buildBowlLine(bowl));
+    typeLines.push(buildBowlLine(bowl));
     namedBowlLine = true;
   }
   if (gameType != null && gameType.kind === 'playoff') {
-    children.push(buildLabelLine('playoff', gameType.label));
+    typeLines.push(buildLabelLine('playoff', gameType.label));
   }
+
+  // The venue sits right under the date; a named bowl line already says the game is neutral.
+  const venue = t.place?.[i] != null ? (data.lookups.venues?.[t.place[i]] ?? null) : null;
+  const locationP = locationLine(venue, Boolean(t.neutral[i]) && !namedBowlLine);
+  if (locationP) children.push(locationP);
+  children.push(...typeLines);
 
   const rivalry = rivalryName(data, i);
   if (rivalry != null) children.push(buildRivalryLine(rivalry));
 
-  if (t.neutral[i] && !namedBowlLine) {
-    const neutralP = document.createElement('p');
-    neutralP.textContent = 'Neutral site';
-    children.push(neutralP);
-  }
-
-  const conferences = conferenceLine(data, i);
-  if (conferences != null) {
-    const conferencesP = document.createElement('p');
-    conferencesP.className = 'panel-conferences';
-    conferencesP.textContent = `Conference: ${conferences}`;
-    children.push(conferencesP);
-  }
+  // conferenceLine stays the gate: a game with neither conference recorded has no line.
+  if (conferenceLine(data, i) != null) children.push(buildConferencesParagraph(data, i));
 
   children.push(buildNetworksParagraph(data, i, currentTheme()));
 
@@ -515,6 +603,8 @@ function showPanel(args) {
   opener = active && active !== document.body ? active : document.getElementById('chart');
   openSession += 1;
   dialog.showModal();
+  // The title had no layout while the dialog was closed; place the badge before first paint.
+  syncBadgeWrap(titleEl);
 }
 
 /** Closes the modal if open; the `close` event handler restores focus. */
