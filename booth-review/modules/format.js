@@ -495,6 +495,33 @@ export function matchupParts(data, i, options = {}) {
   };
 }
 
+/**
+ * The final score in matchup order (away first) and its overtime label: "OT" for one overtime,
+ * "2OT" and up for more. Null before a final score; `ot` is null for a regulation game and when
+ * the data does not say (a file from before contract 2.9.0 has no `overtimes`).
+ * @param {object} data - a `prepareData` result.
+ * @param {number} i - telecast index.
+ * @returns {{score: string, ot: string|null}|null} e.g. {score: "20\u201327", ot: "2OT"}.
+ */
+export function finalScore(data, i) {
+  const t = data.t;
+  return scoreParts(t.away_points[i], t.home_points[i], t.overtimes?.[i]);
+}
+
+/**
+ * `finalScore` from plain values, shared by the CFB and NFL Crews game lists: the score away
+ * first with an en dash, and "OT" for one overtime, "2OT" and up for more.
+ * @param {number|null|undefined} away
+ * @param {number|null|undefined} home
+ * @param {number|null|undefined} overtimes - periods played; null or missing reads as none
+ * @returns {{score: string, ot: string|null}|null} null before a final score
+ */
+export function scoreParts(away, home, overtimes) {
+  if (away == null || home == null) return null;
+  const periods = overtimes ?? 0;
+  return { score: `${away}\u2013${home}`, ot: periods > 1 ? `${periods}OT` : periods === 1 ? 'OT' : null };
+}
+
 const CREW_ROLE_ORDER = { pbp: 0, analyst: 1 };
 
 /**
